@@ -12,6 +12,8 @@ document.addEventListener('DOMContentLoaded', () => {
         newChatBtn: document.getElementById('newChatBtn'),
         uploadImageBtn: document.getElementById('uploadImageBtn'),
         imageUploadInput: document.getElementById('imageUpload'),
+        uploadMp3Btn: document.getElementById('uploadMp3Btn'),
+        mp3UploadInput: document.getElementById('mp3Upload'),
         uploadDocumentBtnInside: document.getElementById('uploadDocumentBtnInside'),
         documentUploadInput: document.getElementById('documentUpload'),
         previewContainer: document.getElementById('previewContainer'),
@@ -331,6 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'docx': return 'fas fa-file-word';
             case 'txt':
             case 'wasm': return 'fas fa-file-alt';
+            case 'mp3': return 'fas fa-file-audio';
             default: return 'fas fa-file-alt';
         }
     }
@@ -707,7 +710,7 @@ document.addEventListener('DOMContentLoaded', () => {
              }
         }
 
-        if ((messageData.type === 'image' || messageData.type === 'document') && messageData.fileInfo) {
+        if ((messageData.type === 'image' || messageData.type === 'document' || messageData.type === 'audio') && messageData.fileInfo) {
             const attachmentContainer = document.createElement('div');
             attachmentContainer.classList.add('attached-file-container');
             if (messageData.type === 'image') {
@@ -726,7 +729,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     attachmentContainer.appendChild(p);
                 }
-            } else if (messageData.type === 'document') {
+            } else if (messageData.type === 'document' || messageData.type === 'audio') {
                 const docPreview = document.createElement('div');
                 docPreview.classList.add('document-preview');
                 const icon = document.createElement('i');
@@ -964,7 +967,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const isoTimestamp = now.toISOString();
         let fileInfoForStore = null;
         let messageContentForStore = content;
-        if (type === 'image' || type === 'document' || type === 'voice') {
+        if (type === 'image' || type === 'document' || type === 'voice' || type === 'audio') {
             if (liveFileInfo && liveFileInfo.name) {
                 fileInfoForStore = {
                     name: liveFileInfo.name,
@@ -1277,6 +1280,20 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
                         console.error("Error processing PDF:", error);
                         userMessage.parts[0].text += `\n[PDF: ${fileObject.name}]`;
                     }
+                } else if (fileObject.type === 'audio/mpeg') {
+                    try {
+                        const base64File = await fileToBase64(fileObject);
+                        const base64Data = base64File.split(',')[1];
+                        userMessage.parts.push({
+                            inline_data: {
+                                mime_type: 'audio/mpeg',
+                                data: base64Data
+                            }
+                        });
+                    } catch (error) {
+                        console.error("Error processing MP3:", error);
+                        userMessage.parts[0].text += `\n[MP3: ${fileObject.name}]`;
+                    }
                 } else {
                     userMessage.parts[0].text += `\n[File: ${fileObject.name}]`;
                 }
@@ -1319,10 +1336,19 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
             throw new Error(err.message || `Failed to fetch from ${config.aiName} API`);
         }
     } else {
-        const apiUrl = `/api/neko?text=${encodeURIComponent(query)}&systemPrompt=${encodeURIComponent(getDynamicPrompt())}&sessionId=${sessionId}`;
+        const apiUrl = `/api/neko`;
+        const formData = new FormData();
+        formData.append('text', query);
+        formData.append('systemPrompt', getDynamicPrompt());
+        formData.append('sessionId', sessionId);
+        if (fileObject) {
+            formData.append('file', fileObject);
+        }
+
         try {
             const response = await fetch(apiUrl, {
-                method: 'GET',
+                method: 'POST',
+                body: formData,
                 signal: abortSignal
             });
             if (!response.ok) {
@@ -1508,7 +1534,7 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
             img.alt = "Preview";
             img.onload = () => URL.revokeObjectURL(img.src);
             domElements.previewContent.appendChild(img);
-        } else if (type === 'document') {
+        } else if (type === 'document' || type === 'audio') {
             const icon = document.createElement('i');
             icon.className = `${getDocumentIconClass(file.name)} file-icon`;
             domElements.previewContent.appendChild(icon);
@@ -1538,6 +1564,7 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
         domElements.chatInput.placeholder = 'Type a message...';
         domElements.imageUploadInput.value = '';
         domElements.documentUploadInput.value = '';
+        domElements.mp3UploadInput.value = '';
         resetChatInputHeight();
         updateSendButtonUI(false);
     }
@@ -1563,6 +1590,10 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
             if (file.type === '' && allowedExtensions.includes(fileExtension)) isValid = true;
             if (type === 'document' && !isValid) {
                  alert('Unsupported document type. Allowed: PDF, DOC, DOCX, DOT, DOTX, RTF, HWPX, TXT, WASM');
+                return;
+            }
+            if (type === 'audio' && file.type !== 'audio/mpeg') {
+                alert('Unsupported audio type. Allowed: MP3');
                 return;
             }
             showPreview(file, type);
@@ -1724,6 +1755,8 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
         });
         domElements.uploadImageBtn.addEventListener('click', () => domElements.imageUploadInput.click());
         domElements.imageUploadInput.addEventListener('change', (e) => handleFileUpload(e, 'image'));
+        domElements.uploadMp3Btn.addEventListener('click', () => domElements.mp3UploadInput.click());
+        domElements.mp3UploadInput.addEventListener('change', (e) => handleFileUpload(e, 'audio'));
         domElements.uploadDocumentBtnInside.addEventListener('click', () => domElements.documentUploadInput.click());
         domElements.documentUploadInput.addEventListener('change', (e) => handleFileUpload(e, 'document'));
         domElements.cancelPreviewBtn.addEventListener('click', clearPreview);
