@@ -346,8 +346,18 @@ document.addEventListener('DOMContentLoaded', () => {
         html = html.replace(/(?<!\*)\*(?!\*)(.*?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
         html = html.replace(/~~(.*?)~~/g, '<del>$1</del>');
         html = html.replace(/`(.*?)`/g, '<code>$1</code>');
-        html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: var(--link-color); text-decoration: underline;">$1</a>');
-        html = html.replace(/(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: var(--link-color); text-decoration: underline;">$1</a>');
+        const linkRegex = /\[([^\]]+)\]\(([^)]+)\)|(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
+        html = html.replace(linkRegex, (match, mdText, mdUrl, rawUrl) => {
+            const url = mdUrl || rawUrl;
+            const text = mdText || rawUrl;
+            if (url) {
+                if (mdUrl && (mdUrl.includes(' ') || mdUrl.includes('<') || mdUrl.includes('>'))) {
+                    return match;
+                }
+                return `<a href="${url.trim()}" target="_blank" rel="noopener noreferrer" style="color: var(--link-color); text-decoration: underline;">${escapeHtml(text)}</a>`;
+            }
+            return match;
+        });
         return html;
     }
 
