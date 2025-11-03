@@ -15,7 +15,33 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css">
     <link id="prismThemeDark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-okaidia.min.css">
     <link id="prismThemeLight" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" disabled>
+    <link rel="stylesheet" href="https://unpkg.com/swiper/swiper-bundle.min.css">
     <style>
+        .swiper-container {
+            width: 100%;
+            height: 300px;
+            margin: 20px 0;
+        }
+        .swiper-slide {
+            text-align: center;
+            font-size: 18px;
+            background: transparent;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .swiper-slide img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .swiper-button-next, .swiper-button-prev {
+            color: var(--primary-color) !important;
+        }
+        .swiper-pagination-bullet-active {
+            background: var(--primary-color) !important;
+        }
         :root {
             --bg-color-light: #ffffff;
             --text-color-light: #121212;
@@ -1378,6 +1404,7 @@
             <div id="actionsMenu" class="actions-menu hidden">
                 <button id="createImageShortcutBtn" title="Create image with AI"><i class="fas fa-wand-magic-sparkles"></i><span>Create Image</span></button>
                 <button id="bananaAiBtn" title="Use Banana AI"><i class="fas fa-carrot"></i><span>Banana AI</span></button>
+                <button id="pinterestSearchBtn" title="Search on Pinterest"><i class="fab fa-pinterest"></i><span>Pinterest Search</span></button>
                 <div class="ai-model-switcher">
                     <i class="fas fa-brain"></i>
                     <select id="aiModelSelect" title="Select AI Model">
@@ -1415,6 +1442,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
+    <script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
     <script>
         Prism.plugins.autoloader.languages_path = 'https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/';
         Prism.plugins.autoloader.use_minified = true;

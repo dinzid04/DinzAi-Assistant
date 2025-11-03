@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
         actionsMenu: document.getElementById('actionsMenu'),
         createImageShortcutBtn: document.getElementById('createImageShortcutBtn'),
         bananaAiBtn: document.getElementById('bananaAiBtn'),
+        pinterestSearchBtn: document.getElementById('pinterestSearchBtn'),
         aiModelSelect: document.getElementById('aiModelSelect'),
         focusModeBtn: document.getElementById('focusModeBtn'),
         focusModeContainer: document.getElementById('focusModeContainer'),
@@ -94,6 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const commands = [
         { cmd: "/create-image", desc: "Generate image from text." },
+        { cmd: "/pinterest", desc: "Search for images on Pinterest." },
     ];
 
     const placeholderSuggestions = [
@@ -830,6 +832,76 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function handlePinterestSearchResponse(data) {
+        if (data && data.status && data.data && data.data.results && data.data.results.length > 0) {
+            const sliderId = `swiper-${Date.now()}`;
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', 'bot-message');
+
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.classList.add('message-bubble');
+
+            const contentDiv = document.createElement('div');
+            contentDiv.classList.add('message-content');
+
+            const swiperContainer = document.createElement('div');
+            swiperContainer.className = 'swiper-container';
+            swiperContainer.id = sliderId;
+
+            const swiperWrapper = document.createElement('div');
+            swiperWrapper.className = 'swiper-wrapper';
+
+            data.data.results.forEach(result => {
+                if (result.base64) {
+                    const slide = document.createElement('div');
+                    slide.className = 'swiper-slide';
+                    const img = document.createElement('img');
+                    img.src = result.base64;
+                    slide.appendChild(img);
+                    swiperWrapper.appendChild(slide);
+                }
+            });
+
+            swiperContainer.appendChild(swiperWrapper);
+
+            // Add pagination and navigation
+            const pagination = document.createElement('div');
+            pagination.className = `swiper-pagination swiper-pagination-${sliderId}`;
+            swiperContainer.appendChild(pagination);
+
+            const nextBtn = document.createElement('div');
+            nextBtn.className = `swiper-button-next swiper-button-next-${sliderId}`;
+            swiperContainer.appendChild(nextBtn);
+
+            const prevBtn = document.createElement('div');
+            prevBtn.className = `swiper-button-prev swiper-button-prev-${sliderId}`;
+            swiperContainer.appendChild(prevBtn);
+
+            contentDiv.appendChild(swiperContainer);
+            bubbleDiv.appendChild(contentDiv);
+            messageDiv.appendChild(bubbleDiv);
+
+            domElements.chatContainer.appendChild(messageDiv);
+            scrollToBottom();
+
+            // Initialize Swiper
+            new Swiper(`#${sliderId}`, {
+                loop: true,
+                pagination: {
+                    el: `.swiper-pagination-${sliderId}`,
+                    clickable: true,
+                },
+                navigation: {
+                    nextEl: `.swiper-button-next-${sliderId}`,
+                    prevEl: `.swiper-button-prev-${sliderId}`,
+                },
+            });
+
+        } else {
+            addNewMessage('bot', 'Sorry, I couldn\'t find any images for that query on Pinterest.', 'text', null, true);
+        }
+    }
+
     function deleteSpecificSession(sessionId) {
         if (!appState.chatSessions[sessionId]) return;
 
@@ -1504,6 +1576,25 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
                      addNewMessage('bot', `Sorry, I couldn't create the image. Error: ${apiError.message || 'Unknown API error'}`, 'text', null, true);
                      cleanupAfterResponseAttempt('Image generation failed.');
                 }
+            } else if (messageText.startsWith('/pinterest')) {
+                const query = messageText.substring('/pinterest'.length).trim();
+                if (!query) {
+                    addNewMessage('bot', "Please provide a search query for Pinterest. Example: /pinterest cute cats", 'text', null, true);
+                    cleanupAfterResponseAttempt('Ready. How can I help?');
+                    return;
+                }
+                try {
+                    const response = await axios.get(`/api/pinterest-search?q=${encodeURIComponent(query)}`, {
+                        signal: appState.currentAbortController.signal
+                    });
+                    handlePinterestSearchResponse(response.data);
+                } catch (apiError) {
+                    if (apiError.name !== 'AbortError') {
+                        addNewMessage('bot', `Sorry, I couldn't search on Pinterest. Error: ${apiError.message || 'Unknown API error'}`, 'text', null, true);
+                    }
+                } finally {
+                    cleanupAfterResponseAttempt();
+                }
             } else {
                 const responseText = await AI_API_Call(messageText, getDynamicPrompt(), appState.currentSessionId, null, appState.currentAbortController.signal);
                 if (responseText.startsWith('[voice_start]')) {
@@ -1731,6 +1822,12 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
         domElements.bananaAiBtn.addEventListener('click', () => {
             appState.bananaAiMode = true;
             domElements.imageUploadInput.click();
+            domElements.actionsMenu.classList.add('hidden');
+        });
+
+        domElements.pinterestSearchBtn.addEventListener('click', () => {
+            domElements.chatInput.value = '/pinterest ';
+            domElements.chatInput.focus();
             domElements.actionsMenu.classList.add('hidden');
         });
 
