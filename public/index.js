@@ -887,6 +887,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Initialize Swiper
             new Swiper(`#${sliderId}`, {
                 loop: true,
+                slidesPerView: 3,
+                spaceBetween: 10,
                 pagination: {
                     el: `.swiper-pagination-${sliderId}`,
                     clickable: true,
