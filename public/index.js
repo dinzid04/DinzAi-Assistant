@@ -2,6 +2,10 @@
 // GAK PAPA.. TAPI KASIH AUTHOR DAN SUMBER ASLI NYA !
 
 document.addEventListener('DOMContentLoaded', () => {
+    const supabaseUrl = 'https://nhxjatcozjfsafjfweua.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oeGphdGNvempmc2FmamZ3ZXVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIxMzI0OTEsImV4cCI6MjA3NzcwODQ5MX0.hG5F5Te0hW8Lv_SjDJXcMqJUifcwGXbs6Z_jp4mhSwk';
+    const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+
     const domElements = {
         chatContainer: document.getElementById('chatContainer'),
         chatInput: document.getElementById('chatInput'),
@@ -80,9 +84,9 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const appState = {
-        currentTheme: localStorage.getItem('theme') || 'dark-mode',
+        currentTheme: 'dark-mode',
         currentModel: 'default',
-        currentPersona: localStorage.getItem('aiPersona') || 'default',
+        currentPersona: 'default',
         currentPreviewFileObject: null,
         currentPreviewType: null,
         currentAbortController: null,
@@ -275,12 +279,14 @@ document.addEventListener('DOMContentLoaded', () => {
         return 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
     }
 
-    function applyTheme(theme) {
+    async function applyTheme(theme) {
         document.body.className = theme;
         const isDarkMode = theme === 'dark-mode';
         domElements.themeToggleBtn.querySelector('i').className = isDarkMode ? 'fas fa-sun' : 'fas fa-moon';
         domElements.themeToggleText.textContent = isDarkMode ? 'Light mode' : 'Dark mode';
-        localStorage.setItem('theme', theme);
+        appState.currentTheme = theme;
+        const { error } = await supabaseClient.from('user_settings').update({ theme: theme }).eq('id', 1);
+        if (error) console.error('Error saving theme:', error);
         if(domElements.prismThemeDarkLink && domElements.prismThemeLightLink){
             if (theme === 'light-mode') {
                 domElements.prismThemeDarkLink.disabled = true;
@@ -469,9 +475,19 @@ document.addEventListener('DOMContentLoaded', () => {
         return segments.join('');
     }
 
-    function saveSessions() {
-        localStorage.setItem('vChatSessions', JSON.stringify(appState.chatSessions));
-        localStorage.setItem('vCurrentSessionId', appState.currentSessionId);
+    async function saveCurrentSession() {
+        if (!appState.currentSessionId) return;
+
+        const currentSession = appState.chatSessions[appState.currentSessionId];
+        if (currentSession) {
+            const { error } = await supabaseClient.from('chat_sessions').upsert(currentSession);
+            if (error) console.error('Error saving session:', error);
+        }
+    }
+
+    async function saveCurrentSessionId() {
+        const { error } = await supabaseClient.from('user_settings').update({ current_session_id: appState.currentSessionId }).eq('id', 1);
+        if (error) console.error('Error saving current session ID:', error);
     }
 
     function isSameDay(d1, d2) {
@@ -804,25 +820,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function deleteSpecificSession(sessionId) {
+    async function deleteSpecificSession(sessionId) {
         if (!appState.chatSessions[sessionId]) return;
 
         if (confirm(`Are you sure you want to delete "${appState.chatSessions[sessionId].title}"? This action cannot be undone.`)) {
             const wasCurrentSession = appState.currentSessionId === sessionId;
             delete appState.chatSessions[sessionId];
 
+            const { error } = await supabaseClient.from('chat_sessions').delete().eq('id', sessionId);
+            if (error) console.error('Error deleting session:', error);
+
             if (wasCurrentSession) {
                 const remainingSessions = Object.values(appState.chatSessions)
                                               .sort((a,b) => b.lastModified - a.lastModified);
                 if (remainingSessions.length > 0) {
                     appState.currentSessionId = remainingSessions[0].id;
+                    await saveCurrentSessionId();
                     renderCurrentSession();
                 } else {
-                    handleNewChat();
+                    await handleNewChat();
                 }
             }
 
-            saveSessions();
             renderSidebar();
         }
     }
@@ -875,7 +894,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (newTitle && newTitle !== currentTitle) {
                         appState.chatSessions[session.id].title = newTitle;
                         appState.chatSessions[session.id].lastModified = Date.now();
-                        saveSessions();
+                        saveCurrentSession();
                     }
                     renderSidebar();
                 };
@@ -932,10 +951,10 @@ document.addEventListener('DOMContentLoaded', () => {
         renderSidebar();
     }
 
-    function switchSession(sessionId) {
+    async function switchSession(sessionId) {
         if (appState.currentSessionId !== sessionId) {
             appState.currentSessionId = sessionId;
-            saveSessions();
+            await saveCurrentSessionId();
             renderCurrentSession();
             if (window.innerWidth <= 768) {
                 toggleSidebar();
@@ -943,7 +962,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function handleNewChat() {
+    async function handleNewChat() {
         if (appState.isAIResponding) return;
         const newId = generateSessionID();
         appState.chatSessions[newId] = {
@@ -953,7 +972,8 @@ document.addEventListener('DOMContentLoaded', () => {
             lastModified: Date.now()
         };
         appState.currentSessionId = newId;
-        saveSessions();
+        await saveCurrentSession();
+        await saveCurrentSessionId();
         renderCurrentSession();
         updateStatusText('New chat started. How can I help?');
         if (window.innerWidth <= 768 && document.body.classList.contains('sidebar-open')) {
@@ -961,7 +981,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function addNewMessage(sender, content, type = 'text', liveFileInfo = null, isAnimated = false) {
+    async function addNewMessage(sender, content, type = 'text', liveFileInfo = null, isAnimated = false) {
         const now = new Date();
         const timestamp = formatTimestamp(now);
         const isoTimestamp = now.toISOString();
@@ -1018,30 +1038,46 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             currentSession.title = finalTitle;
         }
-        saveSessions();
+        await saveCurrentSession();
         renderMessageToDOM(messageData, isAnimated, lastTimestamp, isFirstMessageOfSession);
         renderSidebar();
     }
 
-    function loadSessions() {
-        const storedSessions = localStorage.getItem('vChatSessions');
-        const storedSessionId = localStorage.getItem('vCurrentSessionId');
-        if (storedSessions) {
-            appState.chatSessions = JSON.parse(storedSessions);
-            const sessionKeys = Object.keys(appState.chatSessions);
-            if (sessionKeys.length === 0) {
-                handleNewChat();
-                return;
-            }
-            if (storedSessionId && appState.chatSessions[storedSessionId]) {
-                appState.currentSessionId = storedSessionId;
-            } else {
-                 appState.currentSessionId = sessionKeys.sort((a,b) => appState.chatSessions[b].lastModified - a.lastModified)[0];
+    async function loadSessions() {
+        const { data: settings, error: settingsError } = await supabaseClient.from('user_settings').select('*').eq('id', 1).single();
+
+        if (settings) {
+            appState.currentTheme = settings.theme || 'dark-mode';
+            appState.currentPersona = settings.ai_persona || 'default';
+            appState.currentSessionId = settings.current_session_id;
+        } else {
+            const { error: insertError } = await supabaseClient.from('user_settings').insert([{ id: 1, theme: 'dark-mode', ai_persona: 'default' }]);
+            if (insertError) console.error('Error creating user settings:', insertError);
+        }
+
+        const { data: sessions, error: sessionsError } = await supabaseClient.from('chat_sessions').select('*');
+
+        if (sessions) {
+            appState.chatSessions = sessions.reduce((acc, session) => {
+                acc[session.id] = session;
+                return acc;
+            }, {});
+
+            if (!appState.currentSessionId || !appState.chatSessions[appState.currentSessionId]) {
+                const sortedSessions = Object.values(appState.chatSessions).sort((a,b) => b.lastModified - a.lastModified);
+                if (sortedSessions.length > 0) {
+                    appState.currentSessionId = sortedSessions[0].id;
+                    await saveCurrentSessionId();
+                }
             }
         } else {
             appState.chatSessions = {};
-            handleNewChat();
         }
+
+        if (!appState.currentSessionId) {
+            await handleNewChat();
+        }
+
         renderCurrentSession();
     }
 
@@ -1708,14 +1744,15 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
             domElements.personaDropdownMenu.classList.toggle('hidden');
         });
 
-        domElements.personaCycleBtn.addEventListener('click', () => {
+        domElements.personaCycleBtn.addEventListener('click', async () => {
             const personaKeys = Object.keys(config.aiPersonas);
             const currentIndex = personaKeys.indexOf(appState.currentPersona);
             const nextIndex = (currentIndex + 1) % personaKeys.length;
             const newPersonaKey = personaKeys[nextIndex];
 
             appState.currentPersona = newPersonaKey;
-            localStorage.setItem('aiPersona', newPersonaKey);
+            const { error } = await supabaseClient.from('user_settings').update({ ai_persona: newPersonaKey }).eq('id', 1);
+            if (error) console.error('Error saving persona:', error);
             updatePersonaCycleButton();
         });
 
@@ -1824,8 +1861,8 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
     
     
 
-    function initializeApp() {
-        loadSessions();
+    async function initializeApp() {
+        await loadSessions();
         applyTheme(appState.currentTheme);
         updatePersonaCycleButton();
         const currentSession = appState.chatSessions[appState.currentSessionId];
