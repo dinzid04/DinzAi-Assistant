@@ -50,7 +50,18 @@ document.addEventListener('DOMContentLoaded', () => {
         personaCycleBtn: document.getElementById('personaCycleBtn'),
         currentPersonaName: document.getElementById('currentPersonaName'),
         loginBtn: document.getElementById('loginBtn'),
-        logoutBtn: document.getElementById('logoutBtn')
+        logoutBtn: document.getElementById('logoutBtn'),
+        authModal: document.getElementById('authModal'),
+        closeAuthModalBtn: document.getElementById('closeAuthModalBtn'),
+        authModalTitle: document.getElementById('authModalTitle'),
+        authForm: document.getElementById('authForm'),
+        authEmail: document.getElementById('authEmail'),
+        authPassword: document.getElementById('authPassword'),
+        authError: document.getElementById('authError'),
+        authMessage: document.getElementById('authMessage'),
+        authSubmitBtn: document.getElementById('authSubmitBtn'),
+        authSwitchPrompt: document.getElementById('authSwitchPrompt'),
+        authSwitchBtn: document.getElementById('authSwitchBtn')
     };
 
     const config = {
@@ -96,7 +107,8 @@ document.addEventListener('DOMContentLoaded', () => {
         chatSessions: {},
         currentSessionId: null,
         audioContexts: new WeakMap(),
-        user: null
+        user: null,
+        isLoginMode: true
     };
 
     const commands = [
@@ -1443,7 +1455,7 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
 
     async function handleSendMessage() {
         if (!appState.user) {
-            alert('Please login to start chatting.');
+            domElements.authModal.classList.remove('hidden');
             return;
         }
         if (appState.isAIResponding && appState.currentAbortController) {
@@ -1742,6 +1754,23 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
         }
     }
 
+    function updateAuthModalUI() {
+        if (appState.isLoginMode) {
+            domElements.authModalTitle.textContent = 'Login';
+            domElements.authSubmitBtn.textContent = 'Login';
+            domElements.authSwitchPrompt.textContent = "Don't have an account?";
+            domElements.authSwitchBtn.textContent = 'Sign Up';
+        } else {
+            domElements.authModalTitle.textContent = 'Sign Up';
+            domElements.authSubmitBtn.textContent = 'Sign Up';
+            domElements.authSwitchPrompt.textContent = 'Already have an account?';
+            domElements.authSwitchBtn.textContent = 'Login';
+        }
+        domElements.authError.classList.add('hidden');
+        domElements.authMessage.classList.add('hidden');
+        domElements.authForm.reset();
+    }
+
     async function initializeEventListeners() {
         domElements.actionsMenuBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -1886,11 +1915,48 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
             }
         });
 
-        domElements.loginBtn.addEventListener('click', async () => {
-            const { error } = await supabaseClient.auth.signInWithOAuth({
-                provider: 'google'
-            });
-            if (error) console.error('Error logging in:', error);
+        domElements.loginBtn.addEventListener('click', () => {
+            appState.isLoginMode = true;
+            updateAuthModalUI();
+            domElements.authModal.classList.remove('hidden');
+        });
+
+        domElements.closeAuthModalBtn.addEventListener('click', () => {
+            domElements.authModal.classList.add('hidden');
+        });
+
+        domElements.authSwitchBtn.addEventListener('click', () => {
+            appState.isLoginMode = !appState.isLoginMode;
+            updateAuthModalUI();
+        });
+
+        domElements.authForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = domElements.authEmail.value;
+            const password = domElements.authPassword.value;
+            domElements.authSubmitBtn.disabled = true;
+            domElements.authSubmitBtn.textContent = 'Processing...';
+            domElements.authError.classList.add('hidden');
+            domElements.authMessage.classList.add('hidden');
+
+            try {
+                if (appState.isLoginMode) {
+                    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+                    if (error) throw error;
+                    domElements.authModal.classList.add('hidden');
+                } else {
+                    const { error } = await supabaseClient.auth.signUp({ email, password });
+                    if (error) throw error;
+                    domElements.authMessage.textContent = 'Success! Please check your email to verify your account.';
+                    domElements.authMessage.classList.remove('hidden');
+                }
+            } catch (error) {
+                domElements.authError.textContent = error.message;
+                domElements.authError.classList.remove('hidden');
+            } finally {
+                domElements.authSubmitBtn.disabled = false;
+                updateAuthModalUI();
+            }
         });
 
         domElements.logoutBtn.addEventListener('click', async () => {

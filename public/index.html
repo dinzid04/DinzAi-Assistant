@@ -1200,6 +1200,120 @@
             background-color: var(--menu-bg);
             color: var(--text-color);
         }
+
+        /* Auth Modal Styles */
+        .auth-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            backdrop-filter: blur(5px);
+        }
+        .auth-modal-content {
+            background-color: var(--secondary-color);
+            padding: 2rem 2.5rem;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 400px;
+            position: relative;
+            border: 1px solid var(--border-color);
+        }
+        .close-auth-modal-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 1.8rem;
+            color: var(--placeholder-color);
+            cursor: pointer;
+        }
+        .close-auth-modal-btn:hover {
+            color: var(--text-color);
+        }
+        #authModalTitle {
+            text-align: center;
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+            color: var(--text-color);
+        }
+        .auth-form-group {
+            margin-bottom: 1rem;
+        }
+        .auth-form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--placeholder-color);
+        }
+        .auth-form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        .auth-form-group input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        .auth-submit-btn {
+            width: 100%;
+            padding: 0.8rem;
+            border: none;
+            border-radius: 8px;
+            background-color: var(--primary-color);
+            color: #121212;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 1rem;
+        }
+        .auth-submit-btn:hover {
+            background-color: var(--input-focus-border);
+        }
+        .auth-switch-text {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.9rem;
+            color: var(--placeholder-color);
+        }
+        .auth-switch-btn {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            cursor: pointer;
+            font-size: inherit;
+            text-decoration: underline;
+        }
+        .auth-error, .auth-message {
+            text-align: center;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            padding: 0.5rem;
+            border-radius: 6px;
+        }
+        .auth-error {
+            color: #ff6b81;
+            background-color: rgba(255, 107, 129, 0.1);
+        }
+        .auth-message {
+            color: #2ecc71;
+            background-color: rgba(46, 204, 113, 0.1);
+        }
+
+
         @media (min-width: 769px) {
             .sidebar {
                 z-index: 1100;
@@ -1412,6 +1526,30 @@
     <div id="focusModeContainer" class="focus-mode-container">
         <button id="focusModeCloseBtn" title="Exit Focus Mode"><i class="fas fa-compress"></i></button>
         <textarea id="focusModeTextarea" placeholder="Type a message..."></textarea>
+    </div>
+
+    <div id="authModal" class="auth-modal hidden">
+        <div class="auth-modal-content">
+            <button id="closeAuthModalBtn" class="close-auth-modal-btn">&times;</button>
+            <h2 id="authModalTitle">Login</h2>
+            <form id="authForm">
+                <div class="auth-form-group">
+                    <label for="authEmail">Email</label>
+                    <input type="email" id="authEmail" required>
+                </div>
+                <div class="auth-form-group">
+                    <label for="authPassword">Password</label>
+                    <input type="password" id="authPassword" required>
+                </div>
+                <p id="authError" class="auth-error hidden"></p>
+                <p id="authMessage" class="auth-message hidden"></p>
+                <button type="submit" id="authSubmitBtn" class="auth-submit-btn">Login</button>
+            </form>
+            <p class="auth-switch-text">
+                <span id="authSwitchPrompt">Don't have an account?</span>
+                <button id="authSwitchBtn" class="auth-switch-btn">Sign Up</button>
+            </p>
+        </div>
     </div>
     
     <div id="sidebarOverlay" class="sidebar-overlay"></div>
