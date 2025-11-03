@@ -7,16 +7,17 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const upload = multer({
-    dest: 'uploads/',
-    limits: { fileSize: 10 * 1024 * 1024 } // 10 MB limit
-});
+const uploadsDir = path.join('/tmp', 'uploads');
 
 // Ensure the uploads directory exists
-const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir);
+    fs.mkdirSync(uploadsDir, { recursive: true });
 }
+
+const upload = multer({
+    dest: uploadsDir,
+    limits: { fileSize: 10 * 1024 * 1024 } // 10 MB limit
+});
 
 app.use(express.static(path.join(__dirname, 'public')));
 
