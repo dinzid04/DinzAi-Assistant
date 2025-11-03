@@ -1066,43 +1066,63 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadUserSession() {
         if (!appState.user) return;
 
-        const { data: settings, error: settingsError } = await supabaseClient.from('user_settings').select('*').eq('user_id', appState.user.id).single();
+        try {
+            const { data: settings, error: settingsError } = await supabaseClient.from('user_settings').select('*').eq('user_id', appState.user.id).single();
+            if (settingsError && settingsError.code !== 'PGRST116') { // Ignore 'exact one row' error if no settings exist
+                throw settingsError;
+            }
 
-        if (settings) {
-            appState.currentTheme = settings.theme || 'dark-mode';
-            appState.currentPersona = settings.ai_persona || 'default';
-            appState.currentSessionId = settings.current_session_id;
-        } else {
-            const { error: insertError } = await supabaseClient.from('user_settings').insert([{ user_id: appState.user.id, theme: 'dark-mode', ai_persona: 'default' }]);
-            if (insertError) console.error('Error creating user settings:', insertError);
-        }
+            if (settings) {
+                appState.currentTheme = settings.theme || 'dark-mode';
+                appState.currentPersona = settings.ai_persona || 'default';
+                appState.currentSessionId = settings.current_session_id;
+            } else {
+                // No settings found, create them for the new user
+                const { error: insertError } = await supabaseClient.from('user_settings').insert([{ user_id: appState.user.id, theme: 'dark-mode', ai_persona: 'default' }]);
+                if (insertError) throw insertError;
+            }
 
-        const { data: sessions, error: sessionsError } = await supabaseClient.from('chat_sessions').select('*').eq('user_id', appState.user.id);
+            const { data: sessions, error: sessionsError } = await supabaseClient.from('chat_sessions').select('*').eq('user_id', appState.user.id);
+            if (sessionsError) throw sessionsError;
 
-        if (sessions) {
-            appState.chatSessions = sessions.reduce((acc, session) => {
-                acc[session.id] = session;
-                return acc;
-            }, {});
+            if (sessions) {
+                appState.chatSessions = sessions.reduce((acc, session) => {
+                    acc[session.id] = session;
+                    return acc;
+                }, {});
 
-            if (!appState.currentSessionId || !appState.chatSessions[appState.currentSessionId]) {
-                const sortedSessions = Object.values(appState.chatSessions).sort((a,b) => b.lastModified - a.lastModified);
-                if (sortedSessions.length > 0) {
-                    appState.currentSessionId = sortedSessions[0].id;
-                    await saveCurrentSessionId();
+                if (!appState.currentSessionId || !appState.chatSessions[appState.currentSessionId]) {
+                    const sortedSessions = Object.values(appState.chatSessions).sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified));
+                    if (sortedSessions.length > 0) {
+                        appState.currentSessionId = sortedSessions[0].id;
+                        await saveCurrentSessionId();
+                    }
                 }
             }
-        } else {
-            appState.chatSessions = {};
-        }
 
-        if (!appState.currentSessionId) {
-            await handleNewChat();
-        }
+            if (Object.keys(appState.chatSessions).length === 0) {
+                console.log("No existing sessions found, creating a new one.");
+                await handleNewChat();
+            } else if (!appState.currentSessionId || !appState.chatSessions[appState.currentSessionId]) {
+                 console.log("Current session ID is invalid, falling back to the most recent.");
+                 const sortedSessions = Object.values(appState.chatSessions).sort((a, b) => new Date(b.lastModified) - new Date(a.lastModified));
+                 appState.currentSessionId = sortedSessions[0].id;
+                 await saveCurrentSessionId();
+                 renderCurrentSession();
+            } else {
+                console.log("Session loaded successfully, rendering current session.");
+                renderCurrentSession();
+            }
 
-        renderCurrentSession();
-        applyTheme(appState.currentTheme);
-        updatePersonaCycleButton();
+            applyTheme(appState.currentTheme);
+            updatePersonaCycleButton();
+
+        } catch (error) {
+            console.error("Critical error in loadUserSession:", error);
+            resetToInitialState(`Error loading your session: ${error.message}. Please try logging in again.`);
+            // Force logout on critical session failure to prevent loops
+            supabaseClient.auth.signOut();
+        }
     }
 
     function animateBotMessage(element, text) {
@@ -1676,9 +1696,22 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
         displayPlaceholderSuggestions();
     }
 
+    function resetToInitialState(message = 'Start a new conversation!') {
+        domElements.chatContainer.innerHTML = '';
+        domElements.chatContainer.appendChild(domElements.scrollToBottomBtn);
+        if (appState.currentAbortController) {
+            appState.currentAbortController.abort();
+        }
+        domElements.initialView.classList.remove('hidden');
+        domElements.chatContainer.classList.add('hidden');
+        cleanupAfterResponseAttempt(message);
+        displayPlaceholderSuggestions();
+        renderSidebar();
+    }
+
     function displayPlaceholderSuggestions() {
         domElements.placeholderSuggestionsContainer.innerHTML = '';
-        const currentSession = appState.chatSessions[appState.currentSessionId];
+        const currentSession = appState.currentSessionId ? appState.chatSessions[appState.currentSessionId] : null;
         if (currentSession && currentSession.messages.length > 0) {
              domElements.placeholderSuggestionsContainer.classList.add('hidden');
              return;
@@ -1980,15 +2013,20 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
         updateAuthButtons();
 
         supabaseClient.auth.onAuthStateChange(async (event, session) => {
-            appState.user = session ? session.user : null;
-            if (event === 'SIGNED_IN') {
-                await loadUserSession();
-            } else if (event === 'SIGNED_OUT') {
-                appState.chatSessions = {};
-                appState.currentSessionId = null;
-                resetToInitialState('You have been logged out.');
+            try {
+                appState.user = session ? session.user : null;
+                if (event === 'SIGNED_IN') {
+                    await loadUserSession();
+                } else if (event === 'SIGNED_OUT') {
+                    appState.chatSessions = {};
+                    appState.currentSessionId = null;
+                    resetToInitialState('You have been logged out.');
+                }
+                updateAuthButtons();
+            } catch (error) {
+                console.error('Error in onAuthStateChange handler:', error);
+                resetToInitialState('An error occurred during authentication. Please try again.');
             }
-            updateAuthButtons();
         });
     }
 
