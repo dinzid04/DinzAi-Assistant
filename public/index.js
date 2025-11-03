@@ -1684,7 +1684,11 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
             domElements.previewContent.appendChild(fileDetailsDiv);
         }
         domElements.previewContainer.style.display = 'flex';
-        domElements.chatInput.placeholder = 'Add a caption (optional)...';
+        if (appState.bananaAiMode) {
+            domElements.chatInput.placeholder = 'Enter a prompt for Banana AI...';
+        } else {
+            domElements.chatInput.placeholder = 'Add a caption (optional)...';
+        }
         updateSendButtonUI(false);
     }
 
