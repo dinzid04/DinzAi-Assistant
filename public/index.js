@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
         actionsMenuBtn: document.getElementById('actionsMenuBtn'),
         actionsMenu: document.getElementById('actionsMenu'),
         createImageShortcutBtn: document.getElementById('createImageShortcutBtn'),
+        bananaAiBtn: document.getElementById('bananaAiBtn'),
         aiModelSelect: document.getElementById('aiModelSelect'),
         focusModeBtn: document.getElementById('focusModeBtn'),
         focusModeContainer: document.getElementById('focusModeContainer'),
@@ -87,7 +88,8 @@ document.addEventListener('DOMContentLoaded', () => {
         isAIResponding: false,
         chatSessions: {},
         currentSessionId: null,
-        audioContexts: new WeakMap()
+        audioContexts: new WeakMap(),
+        bananaAiMode: false
     };
 
     const commands = [
@@ -791,6 +793,43 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function handleBananaAiResponse(data) {
+        if (data && data.status && data.images && data.images.base64) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', 'bot-message');
+
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.classList.add('message-bubble');
+
+            const contentDiv = document.createElement('div');
+            contentDiv.classList.add('message-content');
+
+            const img = document.createElement('img');
+            img.src = data.images.base64;
+            img.style.maxWidth = '300px';
+            img.style.borderRadius = '10px';
+
+            const downloadBtn = document.createElement('a');
+            downloadBtn.href = data.images.base64;
+            downloadBtn.download = `banana_ai_result_${Date.now()}.png`;
+            downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download Image';
+            downloadBtn.style.display = 'block';
+            downloadBtn.style.marginTop = '10px';
+            downloadBtn.style.color = 'var(--link-color)';
+            downloadBtn.style.textDecoration = 'none';
+
+            contentDiv.appendChild(img);
+            contentDiv.appendChild(downloadBtn);
+            bubbleDiv.appendChild(contentDiv);
+            messageDiv.appendChild(bubbleDiv);
+
+            domElements.chatContainer.appendChild(messageDiv);
+            scrollToBottom();
+        } else {
+            addNewMessage('bot', 'Sorry, I received an invalid response from Banana AI.', 'text', null, true);
+        }
+    }
+
     function deleteSpecificSession(sessionId) {
         if (!appState.chatSessions[sessionId]) return;
 
@@ -1365,6 +1404,44 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
             return;
         }
         const messageText = domElements.chatInput.value.trim();
+        if (appState.bananaAiMode && appState.currentPreviewFileObject) {
+            const prompt = domElements.chatInput.value.trim();
+            if (!prompt) {
+                alert("Please enter a prompt for Banana AI.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('prompt', prompt);
+            formData.append('image', appState.currentPreviewFileObject);
+
+            addNewMessage('user', prompt, 'image', { name: appState.currentPreviewFileObject.name, url: URL.createObjectURL(appState.currentPreviewFileObject), caption: prompt, size: appState.currentPreviewFileObject.size }, false);
+            clearPreview();
+            domElements.chatInput.value = '';
+            resetChatInputHeight();
+            updateSendButtonUI(false);
+            showTypingIndicator();
+            appState.currentAbortController = new AbortController();
+            updateSendButtonUI(true);
+
+            try {
+                const response = await axios.post('/api/banana-ai', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' },
+                    signal: appState.currentAbortController.signal
+                });
+                handleBananaAiResponse(response.data);
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    console.error('Banana AI Error:', error);
+                    addNewMessage('bot', 'Sorry, something went wrong with Banana AI.', 'text', null, true);
+                }
+            } finally {
+                cleanupAfterResponseAttempt();
+                appState.bananaAiMode = false;
+            }
+            return;
+        }
+
         if (appState.currentPreviewFileObject) {
             const caption = domElements.chatInput.value;
             let fileUrl;
@@ -1648,6 +1725,12 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
         domElements.createImageShortcutBtn.addEventListener('click', () => {
             domElements.chatInput.value = '/create-image ';
             domElements.chatInput.focus();
+            domElements.actionsMenu.classList.add('hidden');
+        });
+
+        domElements.bananaAiBtn.addEventListener('click', () => {
+            appState.bananaAiMode = true;
+            domElements.imageUploadInput.click();
             domElements.actionsMenu.classList.add('hidden');
         });
 
