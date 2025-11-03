@@ -48,7 +48,9 @@ document.addEventListener('DOMContentLoaded', () => {
         personaDropdownBtn: document.getElementById('personaDropdownBtn'),
         personaDropdownMenu: document.getElementById('personaDropdownMenu'),
         personaCycleBtn: document.getElementById('personaCycleBtn'),
-        currentPersonaName: document.getElementById('currentPersonaName')
+        currentPersonaName: document.getElementById('currentPersonaName'),
+        loginBtn: document.getElementById('loginBtn'),
+        logoutBtn: document.getElementById('logoutBtn')
     };
 
     const config = {
@@ -93,7 +95,8 @@ document.addEventListener('DOMContentLoaded', () => {
         isAIResponding: false,
         chatSessions: {},
         currentSessionId: null,
-        audioContexts: new WeakMap()
+        audioContexts: new WeakMap(),
+        user: null
     };
 
     const commands = [
@@ -285,8 +288,10 @@ document.addEventListener('DOMContentLoaded', () => {
         domElements.themeToggleBtn.querySelector('i').className = isDarkMode ? 'fas fa-sun' : 'fas fa-moon';
         domElements.themeToggleText.textContent = isDarkMode ? 'Light mode' : 'Dark mode';
         appState.currentTheme = theme;
-        const { error } = await supabaseClient.from('user_settings').update({ theme: theme }).eq('id', 1);
-        if (error) console.error('Error saving theme:', error);
+        if (appState.user) {
+            const { error } = await supabaseClient.from('user_settings').update({ theme: theme }).eq('user_id', appState.user.id);
+            if (error) console.error('Error saving theme:', error);
+        }
         if(domElements.prismThemeDarkLink && domElements.prismThemeLightLink){
             if (theme === 'light-mode') {
                 domElements.prismThemeDarkLink.disabled = true;
@@ -476,18 +481,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function saveCurrentSession() {
-        if (!appState.currentSessionId) return;
+        if (!appState.currentSessionId || !appState.user) return;
 
         const currentSession = appState.chatSessions[appState.currentSessionId];
         if (currentSession) {
-            const { error } = await supabaseClient.from('chat_sessions').upsert(currentSession);
+            const { error } = await supabaseClient.from('chat_sessions').upsert({ ...currentSession, user_id: appState.user.id });
             if (error) console.error('Error saving session:', error);
         }
     }
 
     async function saveCurrentSessionId() {
-        const { error } = await supabaseClient.from('user_settings').update({ current_session_id: appState.currentSessionId }).eq('id', 1);
-        if (error) console.error('Error saving current session ID:', error);
+        if (appState.user) {
+            const { error } = await supabaseClient.from('user_settings').update({ current_session_id: appState.currentSessionId }).eq('user_id', appState.user.id);
+            if (error) console.error('Error saving current session ID:', error);
+        }
     }
 
     function isSameDay(d1, d2) {
@@ -969,7 +976,8 @@ document.addEventListener('DOMContentLoaded', () => {
             id: newId,
             title: 'New Chat',
             messages: [],
-            lastModified: Date.now()
+            lastModified: Date.now(),
+            user_id: appState.user.id
         };
         appState.currentSessionId = newId;
         await saveCurrentSession();
@@ -1043,19 +1051,21 @@ document.addEventListener('DOMContentLoaded', () => {
         renderSidebar();
     }
 
-    async function loadSessions() {
-        const { data: settings, error: settingsError } = await supabaseClient.from('user_settings').select('*').eq('id', 1).single();
+    async function loadUserSession() {
+        if (!appState.user) return;
+
+        const { data: settings, error: settingsError } = await supabaseClient.from('user_settings').select('*').eq('user_id', appState.user.id).single();
 
         if (settings) {
             appState.currentTheme = settings.theme || 'dark-mode';
             appState.currentPersona = settings.ai_persona || 'default';
             appState.currentSessionId = settings.current_session_id;
         } else {
-            const { error: insertError } = await supabaseClient.from('user_settings').insert([{ id: 1, theme: 'dark-mode', ai_persona: 'default' }]);
+            const { error: insertError } = await supabaseClient.from('user_settings').insert([{ user_id: appState.user.id, theme: 'dark-mode', ai_persona: 'default' }]);
             if (insertError) console.error('Error creating user settings:', insertError);
         }
 
-        const { data: sessions, error: sessionsError } = await supabaseClient.from('chat_sessions').select('*');
+        const { data: sessions, error: sessionsError } = await supabaseClient.from('chat_sessions').select('*').eq('user_id', appState.user.id);
 
         if (sessions) {
             appState.chatSessions = sessions.reduce((acc, session) => {
@@ -1079,6 +1089,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         renderCurrentSession();
+        applyTheme(appState.currentTheme);
+        updatePersonaCycleButton();
     }
 
     function animateBotMessage(element, text) {
@@ -1430,6 +1442,10 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
     }
 
     async function handleSendMessage() {
+        if (!appState.user) {
+            alert('Please login to start chatting.');
+            return;
+        }
         if (appState.isAIResponding && appState.currentAbortController) {
             appState.currentAbortController.abort();
             addNewMessage('bot', 'Okay, I will stop.', 'text', null, false);
@@ -1716,7 +1732,17 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
         domElements.currentPersonaName.textContent = personaName;
     }
 
-    function initializeEventListeners() {
+    function updateAuthButtons() {
+        if (appState.user) {
+            domElements.loginBtn.classList.add('hidden');
+            domElements.logoutBtn.classList.remove('hidden');
+        } else {
+            domElements.loginBtn.classList.remove('hidden');
+            domElements.logoutBtn.classList.add('hidden');
+        }
+    }
+
+    async function initializeEventListeners() {
         domElements.actionsMenuBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             domElements.actionsMenu.classList.toggle('hidden');
@@ -1751,8 +1777,10 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
             const newPersonaKey = personaKeys[nextIndex];
 
             appState.currentPersona = newPersonaKey;
-            const { error } = await supabaseClient.from('user_settings').update({ ai_persona: newPersonaKey }).eq('id', 1);
-            if (error) console.error('Error saving persona:', error);
+            if (appState.user) {
+                const { error } = await supabaseClient.from('user_settings').update({ ai_persona: newPersonaKey }).eq('user_id', appState.user.id);
+                if (error) console.error('Error saving persona:', error);
+            }
             updatePersonaCycleButton();
         });
 
@@ -1857,24 +1885,45 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
                 }
             }
         });
+
+        domElements.loginBtn.addEventListener('click', async () => {
+            const { error } = await supabaseClient.auth.signInWithOAuth({
+                provider: 'google'
+            });
+            if (error) console.error('Error logging in:', error);
+        });
+
+        domElements.logoutBtn.addEventListener('click', async () => {
+            const { error } = await supabaseClient.auth.signOut();
+            if (error) console.error('Error logging out:', error);
+        });
     }
     
     
-
     async function initializeApp() {
-        await loadSessions();
-        applyTheme(appState.currentTheme);
-        updatePersonaCycleButton();
-        const currentSession = appState.chatSessions[appState.currentSessionId];
-        if (!currentSession || currentSession.messages.length === 0) {
-            updateStatusText(`Welcome to ${config.aiName}! How can I assist you today?`);
-            displayPlaceholderSuggestions();
-        } else {
-            updateStatusText('Chat history loaded. Ready when you are!');
-        }
-        updateSendButtonUI(false);
-        resetChatInputHeight();
         initializeEventListeners();
+
+        const { data: { session }, error } = await supabaseClient.auth.getSession();
+        if (session) {
+            appState.user = session.user;
+            await loadUserSession();
+        } else {
+            resetToInitialState('Please login to start chatting.');
+        }
+
+        updateAuthButtons();
+
+        supabaseClient.auth.onAuthStateChange(async (event, session) => {
+            appState.user = session ? session.user : null;
+            if (event === 'SIGNED_IN') {
+                await loadUserSession();
+            } else if (event === 'SIGNED_OUT') {
+                appState.chatSessions = {};
+                appState.currentSessionId = null;
+                resetToInitialState('You have been logged out.');
+            }
+            updateAuthButtons();
+        });
     }
 
     initializeApp();
