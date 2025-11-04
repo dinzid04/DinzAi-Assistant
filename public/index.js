@@ -858,7 +858,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const artists = musicData.artists;
 
             if (title && artists) {
-                const message = `**Song Found!**\n* **Title:** ${escapeHtml(title)}\n* **Artist(s):** ${escapeHtml(artists)}`;
+                const artistsString = artists.join(', ');
+                const message = `**Song Found!**\n* **Title:** ${escapeHtml(title)}\n* **Artist(s):** ${escapeHtml(artistsString)}`;
                 addNewMessage('bot', message, 'text', null, true);
             } else {
                 addNewMessage('bot', 'Sorry, I could identify the song, but the response was missing some details.', 'text', null, true);
