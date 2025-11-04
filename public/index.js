@@ -801,7 +801,7 @@ document.addEventListener('DOMContentLoaded', () => {
             messageDiv.classList.add('message', 'bot-message');
 
             const bubbleDiv = document.createElement('div');
-            bubbleDiv.classList.add('message-bubble');
+            bubbleDiv.classList.add('message-bubble', 'has-pinterest-slider');
 
             const contentDiv = document.createElement('div');
             contentDiv.classList.add('message-content');
