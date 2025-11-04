@@ -686,6 +686,8 @@ document.addEventListener('DOMContentLoaded', () => {
             
         } else if (isNewMessageAnimation && messageData.sender === 'bot' && messageData.type === 'text') {
             animateBotMessage(messageContentDiv, messageData.content);
+        } else if (messageData.type === 'html') {
+            messageContentDiv.innerHTML = messageData.content;
         } else {
             messageContentDiv.innerHTML = formatMessageContent(messageData.content);
             Prism.highlightAllUnder(messageContentDiv);
@@ -835,8 +837,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function handleLyricsSearchResponse(data) {
         if (data && data.success && data.result && data.result.length > 0) {
             const lyrics = data.result[0];
-            const formattedLyrics = `**${lyrics.trackName}** by **${lyrics.artistName}**\n\n${lyrics.plainLyrics.replace(/\n/g, '<br>')}`;
-            addNewMessage('bot', formattedLyrics, 'text', null, true);
+            const safeTrackName = escapeHtml(lyrics.trackName);
+            const safeArtistName = escapeHtml(lyrics.artistName);
+            const formattedLyrics = `<b>${safeTrackName}</b> by <b>${safeArtistName}</b><br><br>${escapeHtml(lyrics.plainLyrics).replace(/\n/g, '<br>')}`;
+            addNewMessage('bot', formattedLyrics, 'html', null, false);
         } else {
             addNewMessage('bot', 'Sorry, I couldn\'t find any lyrics for that song.', 'text', null, true);
         }
