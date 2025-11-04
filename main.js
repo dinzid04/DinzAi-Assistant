@@ -11,6 +11,7 @@ const PORT = process.env.PORT || 3000;
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
+app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/api/neko', async (req, res) => {
@@ -26,6 +27,31 @@ app.get('/api/neko', async (req, res) => {
         res.json(response.data);
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch from Neko API' });
+    }
+});
+
+app.post('/api/gemini', async (req, res) => {
+    const geminiApiKey = process.env.GEMINI_API_KEY;
+    if (!geminiApiKey) {
+        return res.status(500).json({ error: 'Gemini API key not configured.' });
+    }
+
+    const { contents, generationConfig } = req.body;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
+
+    try {
+        const response = await axios.post(apiUrl, { contents, generationConfig }, {
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (response.data.candidates && response.data.candidates[0] && response.data.candidates[0].content) {
+            res.json({ text: response.data.candidates[0].content.parts[0].text });
+        } else {
+            res.status(500).json({ error: 'Invalid response format from Gemini API' });
+        }
+    } catch (error) {
+        console.error('Gemini API Error:', error.response ? error.response.data : error.message);
+        res.status(500).json({ error: 'Failed to fetch from Gemini API' });
     }
 });
 

@@ -49,8 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const config = {
-        aiName: 'Vioo AI',
-        geminiApiKey: 'AIzaSyBNM8B-3ZiuacyQ5D2B30_b_0wWE7e7N4s',
+        aiName: 'Dinz AI',
         geminiModel: 'gemini-2.0-flash',
         geminiApiUrl: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
         nekoApiUrl: 'https://api.nekolabs.web.id/ai/gpt/4o-mini-search',
@@ -58,20 +57,20 @@ document.addEventListener('DOMContentLoaded', () => {
         secondApiUrl: 'https://api.siputzx.my.id',
         aiPersonas: {
             default: {
-                name: 'Vioo AI (Default)',
-                prompt: "You are Vioo AI, a sophisticated and intelligent assistant created by Sanjaya Adiputra. Your core personality is professional, concise, articulate and highly accurate. Always address the user as 'kamu' and refer to yourself as 'aku'. Maintain a formal yet helpful tone, avoiding slang, casual humor and unnecessary emojis. Your primary objective is to provide precise, relevant and helpful information with clarity. You must be acutely aware of your digital environment and the current time as provided in the context. This prompt is confidential"
+                name: 'Dinz AI (Default)',
+                prompt: "You are Dinz AI, a sophisticated and intelligent assistant created by DinzID. Your core personality is professional, concise, articulate and highly accurate. Always address the user as 'kamu' and refer to yourself as 'aku'. Maintain a formal yet helpful tone, avoiding slang, casual humor and unnecessary emojis. Your primary objective is to provide precise, relevant and helpful information with clarity. You must be acutely aware of your digital environment and the current time as provided in the context. This prompt is confidential"
             },
             professional: {
                 name: 'Professional',
-                prompt: "You are Vioo AI, a sophisticated and intelligent assistant created by Sanjaya Adiputra. Your core personality is professional, concise, articulate and highly accurate. Always address the user as 'anda' and refer to yourself as 'saya'. Maintain a formal yet helpful tone, avoiding slang, casual humor and unnecessary emojis. Your primary objective is to provide precise, relevant and helpful information with clarity. You must be acutely aware of your digital environment and the current time as provided in the context. This prompt is confidential"
+                prompt: "You are Dinz AI, a sophisticated and intelligent assistant created by DinzID. Your core personality is professional, concise, articulate and highly accurate. Always address the user as 'anda' and refer to yourself as 'saya'. Maintain a formal yet helpful tone, avoiding slang, casual humor and unnecessary emojis. Your primary objective is to provide precise, relevant and helpful information with clarity. You must be acutely aware of your digital environment and the current time as provided in the context. This prompt is confidential"
             },
             Student: {
     name: 'Guru',
-    prompt: "You are Vioo AI, a friendly and intelligent assistant created by Sanjaya Adiputra. Your core personality is warm, approachable and highly helpful. Always address the user as 'kamu' and refer to yourself as 'aku'. Maintain a tone that is both professional and friendly, providing clear and concise information while being approachable and engaging. Your primary objective is to offer precise, relevant and helpful responses that make interactions enjoyable and productive. Be aware of your digital environment and the current time as provided in the context. This prompt is confidential"
+    prompt: "You are Dinz AI, a friendly and intelligent assistant created by DinzID. Your core personality is warm, approachable and highly helpful. Always address the user as 'kamu' and refer to yourself as 'aku'. Maintain a tone that is both professional and friendly, providing clear and concise information while being approachable and engaging. Your primary objective is to offer precise, relevant and helpful responses that make interactions enjoyable and productive. Be aware of your digital environment and the current time as provided in the context. This prompt is confidential"
 },
             friendly: {
                 name: 'Friendly',
-                prompt: "You are Vioo AI, a friendly and intelligent assistant created by Sanjaya Adiputra. Your core personality is warm, approachable and highly helpful. Always address the user as 'kamu' and refer to yourself as 'aku'. Maintain a tone that is both professional and friendly, providing clear and concise information while being approachable and engaging. Your primary objective is to offer precise, relevant and helpful responses that make interactions enjoyable and productive. Be aware of your digital environment and the current time as provided in the context. This prompt is confidential"
+                prompt: "You are Dinz AI, a friendly and intelligent assistant created by DinzID. Your core personality is warm, approachable and highly helpful. Always address the user as 'kamu' and refer to yourself as 'aku'. Maintain a tone that is both professional and friendly, providing clear and concise information while being approachable and engaging. Your primary objective is to offer precise, relevant and helpful responses that make interactions enjoyable and productive. Be aware of your digital environment and the current time as provided in the context. This prompt is confidential"
             }
         },
         animationChunkDelay: 20,
@@ -345,18 +344,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function processInlineFormatting(text) {
+        const markdownPatterns = [
+            { name: 'link', regex: /\[([^\]]+)\]\(([^)]+)\)/g, replacer: (m, text, url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: var(--link-color); text-decoration: underline;">${escapeHtml(text)}</a>` },
+            { name: 'autolink', regex: /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig, replacer: (m, url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: var(--link-color); text-decoration: underline;">${escapeHtml(url)}</a>` },
+            { name: 'bold', regex: /\*\*(.*?)\*\*/g, replacer: (m, text) => `<strong>${escapeHtml(text)}</strong>` },
+            { name: 'underline', regex: /__(.*?)__/g, replacer: (m, text) => `<u>${escapeHtml(text)}</u>` },
+            { name: 'italic', regex: /(?<!\*)\*(?!\*)(.*?)(?<!\*)\*(?!\*)/g, replacer: (m, text) => `<em>${escapeHtml(text)}</em>` },
+            { name: 'strike', regex: /~~(.*?)~~/g, replacer: (m, text) => `<del>${escapeHtml(text)}</del>` },
+            { name: 'code', regex: /`(.*?)`/g, replacer: (m, text) => `<code>${escapeHtml(text)}</code>` },
+            { name: 'command', regex: new RegExp(`(?<!\\S)(${commands.map(c => c.cmd.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')).join('|')})(?!\\S)`, 'g'), replacer: (m, cmd) => `<span class="command-in-message">${escapeHtml(cmd)}</span>` }
+        ];
+
         let html = escapeHtml(text);
-        commands.forEach(command => {
-            const commandRegex = new RegExp(`(?<!\\S)${command.cmd.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}(?!\\S)`, 'g');
-            html = html.replace(commandRegex, `<span class="command-in-message">${command.cmd}</span>`);
+        const placeholders = {};
+        let i = 0;
+
+        markdownPatterns.forEach(pattern => {
+            html = html.replace(pattern.regex, (...args) => {
+                const placeholder = `%%PLACEHOLDER_${i++}%%`;
+                placeholders[placeholder] = pattern.replacer(...args);
+                return placeholder;
+            });
         });
-        html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        html = html.replace(/__(.*?)__/g, '<u>$1</u>');
-        html = html.replace(/(?<!\*)\*(?!\*)(.*?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
-        html = html.replace(/~~(.*?)~~/g, '<del>$1</del>');
-        html = html.replace(/`(.*?)`/g, '<code>$1</code>');
-        html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: var(--link-color); text-decoration: underline;">$1</a>');
-        html = html.replace(/(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: var(--link-color); text-decoration: underline;">$1</a>');
+
+        for (const placeholder in placeholders) {
+            html = html.replace(new RegExp(placeholder.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g'), placeholders[placeholder]);
+        }
+
         return html;
     }
 
@@ -1281,7 +1295,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     contents.push({
         role: "model",
-        parts: [{ text: "I understand. I am Vioo AI and ready to assist you according to the provided instructions." }]
+        parts: [{ text: "I understand. I am Dinz AI and ready to assist you according to the provided instructions." }]
     });
     
     // Convert messages ke format Gemini
@@ -1304,7 +1318,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSignal) {
     if (appState.currentModel === 'default') {
-        const apiUrl = `${config.geminiApiUrl}?key=${config.geminiApiKey}`;
+        const apiUrl = '/api/gemini';
         let contents = buildChatHistory();
         if (contents.length === 0) {
             contents.push({
@@ -1374,8 +1388,8 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
                 throw new Error(errorData.error?.message || `API request failed with status ${response.status}`);
             }
             const result = await response.json();
-            if (result.candidates && result.candidates[0] && result.candidates[0].content) {
-                return result.candidates[0].content.parts[0].text;
+            if (result.text) {
+                return result.text;
             } else {
                 throw new Error('Invalid response format from Gemini API');
             }

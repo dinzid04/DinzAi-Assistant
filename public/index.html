@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vioo AI</title>
-    <meta property="og:title" content="Vioo-AI">
-    <meta property="og:description" content="Chat with Vioo AI to make your work easier and more">
+    <title>Dinz AI</title>
+    <meta property="og:title" content="Dinz-AI">
+    <meta property="og:description" content="Chat with Dinz AI to make your work easier and more">
     <meta property="og:image" content="https://files.catbox.moe/70gv96.png">
     <meta property="og:url" content="https://files.catbox.moe/70gv96.png">
     <link rel="icon" href="https://files.catbox.moe/70gv96.png" type="image/jpeg">
@@ -1080,7 +1080,7 @@
         .preview-actions { display: none; } 
         .initial-view {
             flex-grow: 1; display: flex; flex-direction: column;
-            align-items: center; justify-content: center; text-align: center;
+            align-items: flex-start; justify-content: flex-start; text-align: left;
             padding: 1rem; 
         }
         .initial-view img { width: 160px; margin-bottom: 1.5rem; } 
@@ -1372,7 +1372,7 @@
                 <i class="fas fa-stream"></i>
             </button>
             <div class="logo">
-                <span>Vioo AI</span>
+                <span>Dinz AI</span>
                 <button id="personaDropdownBtn" title="Change AI Persona">
                     <i class="fas fa-chevron-down"></i>
                 </button>
@@ -1389,8 +1389,8 @@
         </header>
 
         <div class="initial-view" id="initialView">
-            <img src="https://files.catbox.moe/70gv96.png" alt="Vioo AI">
-            <h1>Hi, I'm <span>Vioo AI</span></h1>
+            <img src="https://files.catbox.moe/70gv96.png" alt="Dinz AI">
+            <h1>Hi, I'm <span>Dinz AI</span></h1>
             <p id="statusText">Your smart conversation partner. How can I help you today?</p>
             <div id="placeholderSuggestions" class="placeholder-suggestions"></div>
         </div>
@@ -1415,7 +1415,7 @@
                 <div class="ai-model-switcher">
                     <i class="fas fa-brain"></i>
                     <select id="aiModelSelect" title="Select AI Model">
-                        <option value="default">Vioo AI</option>
+                        <option value="default">Dinz AI</option>
                         <option value="gpt-4o-mini-search">Search Enabled</option>
                     </select>
                 </div>
@@ -1431,7 +1431,7 @@
                 </div>
                 <button id="sendBtn" title="Send Message"><i class="fas fa-paper-plane"></i></button>
             </footer>
-            <p class="disclaimer-message">Vioo AI can make mistakes, so double check its responses</p>
+            <p class="disclaimer-message">Dinz AI can make mistakes, so double check its responses</p>
         </div>
     </div>
     
