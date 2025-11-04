@@ -852,11 +852,11 @@ document.addEventListener('DOMContentLoaded', () => {
             swiperWrapper.className = 'swiper-wrapper';
 
             data.data.results.forEach(result => {
-                if (result.base64) {
+                if (result.imageUrl) {
                     const slide = document.createElement('div');
                     slide.className = 'swiper-slide';
                     const img = document.createElement('img');
-                    img.src = result.base64;
+                    img.src = result.imageUrl;
                     slide.appendChild(img);
                     swiperWrapper.appendChild(slide);
                 }
