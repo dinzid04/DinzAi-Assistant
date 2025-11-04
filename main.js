@@ -60,22 +60,21 @@ app.post('/api/banana-ai', upload.single('image'), async (req, res) => {
     }
 });
 
-app.get('/api/pinterest-search', async (req, res) => {
+app.get('/api/lyrics-search', async (req, res) => {
     try {
         const { q } = req.query;
         if (!q) {
             return res.status(400).json({ error: 'Query parameter "q" is required' });
         }
 
-        const response = await axios.get('https://swagger-nextjs-one.vercel.app/api/search/pinterest', {
-            params: { q },
-            headers: { 'accept': 'application/json' }
+        const response = await axios.get('https://api.nekolabs.web.id/discovery/lyrics/search', {
+            params: { q }
         });
 
         res.json(response.data);
     } catch (error) {
-        console.error('Error fetching from Pinterest API:', error.response ? error.response.data : error.message);
-        res.status(500).json({ error: 'Failed to fetch from Pinterest API' });
+        console.error('Error fetching from Lyrics API:', error.response ? error.response.data : error.message);
+        res.status(500).json({ error: 'Failed to fetch from Lyrics API' });
     }
 });
 

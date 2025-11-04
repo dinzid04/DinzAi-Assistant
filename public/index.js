@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
         actionsMenu: document.getElementById('actionsMenu'),
         createImageShortcutBtn: document.getElementById('createImageShortcutBtn'),
         bananaAiBtn: document.getElementById('bananaAiBtn'),
-        pinterestSearchBtn: document.getElementById('pinterestSearchBtn'),
+        lyricsSearchBtn: document.getElementById('lyricsSearchBtn'),
         aiModelSelect: document.getElementById('aiModelSelect'),
         focusModeBtn: document.getElementById('focusModeBtn'),
         focusModeContainer: document.getElementById('focusModeContainer'),
@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const commands = [
         { cmd: "/create-image", desc: "Generate image from text." },
-        { cmd: "/pinterest", desc: "Search for images on Pinterest." },
+        { cmd: "/lyrics", desc: "Search for song lyrics." },
     ];
 
     const placeholderSuggestions = [
@@ -832,75 +832,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function handlePinterestSearchResponse(data) {
-        if (data && data.status && data.data && data.data.results && data.data.results.length > 0) {
-            const sliderId = `swiper-${Date.now()}`;
-            const messageDiv = document.createElement('div');
-            messageDiv.classList.add('message', 'bot-message');
-
-            const bubbleDiv = document.createElement('div');
-            bubbleDiv.classList.add('message-bubble');
-
-            const contentDiv = document.createElement('div');
-            contentDiv.classList.add('message-content');
-
-            const swiperContainer = document.createElement('div');
-            swiperContainer.className = 'swiper-container';
-            swiperContainer.id = sliderId;
-
-            const swiperWrapper = document.createElement('div');
-            swiperWrapper.className = 'swiper-wrapper';
-
-            data.data.results.forEach(result => {
-                if (result.imageUrl) {
-                    const slide = document.createElement('div');
-                    slide.className = 'swiper-slide';
-                    const img = document.createElement('img');
-                    img.src = result.imageUrl;
-                    slide.appendChild(img);
-                    swiperWrapper.appendChild(slide);
-                }
-            });
-
-            swiperContainer.appendChild(swiperWrapper);
-
-            // Add pagination and navigation
-            const pagination = document.createElement('div');
-            pagination.className = `swiper-pagination swiper-pagination-${sliderId}`;
-            swiperContainer.appendChild(pagination);
-
-            const nextBtn = document.createElement('div');
-            nextBtn.className = `swiper-button-next swiper-button-next-${sliderId}`;
-            swiperContainer.appendChild(nextBtn);
-
-            const prevBtn = document.createElement('div');
-            prevBtn.className = `swiper-button-prev swiper-button-prev-${sliderId}`;
-            swiperContainer.appendChild(prevBtn);
-
-            contentDiv.appendChild(swiperContainer);
-            bubbleDiv.appendChild(contentDiv);
-            messageDiv.appendChild(bubbleDiv);
-
-            domElements.chatContainer.appendChild(messageDiv);
-            scrollToBottom();
-
-            // Initialize Swiper
-            new Swiper(`#${sliderId}`, {
-                loop: true,
-                slidesPerView: 3,
-                spaceBetween: 10,
-                pagination: {
-                    el: `.swiper-pagination-${sliderId}`,
-                    clickable: true,
-                },
-                navigation: {
-                    nextEl: `.swiper-button-next-${sliderId}`,
-                    prevEl: `.swiper-button-prev-${sliderId}`,
-                },
-            });
-
+    function handleLyricsSearchResponse(data) {
+        if (data && data.success && data.result && data.result.length > 0) {
+            const lyrics = data.result[0];
+            const formattedLyrics = `**${lyrics.trackName}** by **${lyrics.artistName}**\n\n${lyrics.plainLyrics.replace(/\n/g, '<br>')}`;
+            addNewMessage('bot', formattedLyrics, 'text', null, true);
         } else {
-            addNewMessage('bot', 'Sorry, I couldn\'t find any images for that query on Pinterest.', 'text', null, true);
+            addNewMessage('bot', 'Sorry, I couldn\'t find any lyrics for that song.', 'text', null, true);
         }
     }
 
@@ -1578,21 +1516,21 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
                      addNewMessage('bot', `Sorry, I couldn't create the image. Error: ${apiError.message || 'Unknown API error'}`, 'text', null, true);
                      cleanupAfterResponseAttempt('Image generation failed.');
                 }
-            } else if (messageText.startsWith('/pinterest')) {
-                const query = messageText.substring('/pinterest'.length).trim();
+            } else if (messageText.startsWith('/lyrics')) {
+                const query = messageText.substring('/lyrics'.length).trim();
                 if (!query) {
-                    addNewMessage('bot', "Please provide a search query for Pinterest. Example: /pinterest cute cats", 'text', null, true);
+                    addNewMessage('bot', "Please provide a search query for lyrics. Example: /lyrics seberapa pantas", 'text', null, true);
                     cleanupAfterResponseAttempt('Ready. How can I help?');
                     return;
                 }
                 try {
-                    const response = await axios.get(`/api/pinterest-search?q=${encodeURIComponent(query)}`, {
+                    const response = await axios.get(`/api/lyrics-search?q=${encodeURIComponent(query)}`, {
                         signal: appState.currentAbortController.signal
                     });
-                    handlePinterestSearchResponse(response.data);
+                    handleLyricsSearchResponse(response.data);
                 } catch (apiError) {
                     if (apiError.name !== 'AbortError') {
-                        addNewMessage('bot', `Sorry, I couldn't search on Pinterest. Error: ${apiError.message || 'Unknown API error'}`, 'text', null, true);
+                        addNewMessage('bot', `Sorry, I couldn't search for lyrics. Error: ${apiError.message || 'Unknown API error'}`, 'text', null, true);
                     }
                 } finally {
                     cleanupAfterResponseAttempt();
@@ -1831,8 +1769,8 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
             domElements.actionsMenu.classList.add('hidden');
         });
 
-        domElements.pinterestSearchBtn.addEventListener('click', () => {
-            domElements.chatInput.value = '/pinterest ';
+        domElements.lyricsSearchBtn.addEventListener('click', () => {
+            domElements.chatInput.value = '/lyrics ';
             domElements.chatInput.focus();
             domElements.actionsMenu.classList.add('hidden');
         });
