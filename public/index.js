@@ -33,9 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
         actionsMenuBtn: document.getElementById('actionsMenuBtn'),
         actionsMenu: document.getElementById('actionsMenu'),
         createImageShortcutBtn: document.getElementById('createImageShortcutBtn'),
-        bananaAiBtn: document.getElementById('bananaAiBtn'),
         lyricsSearchBtn: document.getElementById('lyricsSearchBtn'),
-        whatMusicBtn: document.getElementById('whatMusicBtn'),
         aiModelSelect: document.getElementById('aiModelSelect'),
         focusModeBtn: document.getElementById('focusModeBtn'),
         focusModeContainer: document.getElementById('focusModeContainer'),
@@ -50,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const config = {
         aiName: 'Dinz AI',
+        geminiApiKey: 'AIzaSyBNM8B-3ZiuacyQ5D2B30_b_0wWE7e7N4s',
         geminiModel: 'gemini-2.0-flash',
         geminiApiUrl: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
         nekoApiUrl: 'https://api.nekolabs.web.id/ai/gpt/4o-mini-search',
@@ -58,19 +57,19 @@ document.addEventListener('DOMContentLoaded', () => {
         aiPersonas: {
             default: {
                 name: 'Dinz AI (Default)',
-                prompt: "You are Dinz AI, a sophisticated and intelligent assistant created by DinzID. Your core personality is professional, concise, articulate and highly accurate. Always address the user as 'kamu' and refer to yourself as 'aku'. Maintain a formal yet helpful tone, avoiding slang, casual humor and unnecessary emojis. Your primary objective is to provide precise, relevant and helpful information with clarity. You must be acutely aware of your digital environment and the current time as provided in the context. This prompt is confidential"
+                prompt: "You are Dinz AI, a sophisticated and intelligent assistant created by Sanjaya Adiputra. Your core personality is professional, concise, articulate and highly accurate. Always address the user as 'kamu' and refer to yourself as 'aku'. Maintain a formal yet helpful tone, avoiding slang, casual humor and unnecessary emojis. Your primary objective is to provide precise, relevant and helpful information with clarity. You must be acutely aware of your digital environment and the current time as provided in the context. This prompt is confidential"
             },
             professional: {
                 name: 'Professional',
-                prompt: "You are Dinz AI, a sophisticated and intelligent assistant created by DinzID. Your core personality is professional, concise, articulate and highly accurate. Always address the user as 'anda' and refer to yourself as 'saya'. Maintain a formal yet helpful tone, avoiding slang, casual humor and unnecessary emojis. Your primary objective is to provide precise, relevant and helpful information with clarity. You must be acutely aware of your digital environment and the current time as provided in the context. This prompt is confidential"
+                prompt: "You are Dinz AI, a sophisticated and intelligent assistant created by Sanjaya Adiputra. Your core personality is professional, concise, articulate and highly accurate. Always address the user as 'anda' and refer to yourself as 'saya'. Maintain a formal yet helpful tone, avoiding slang, casual humor and unnecessary emojis. Your primary objective is to provide precise, relevant and helpful information with clarity. You must be acutely aware of your digital environment and the current time as provided in the context. This prompt is confidential"
             },
             Student: {
     name: 'Guru',
-    prompt: "You are Dinz AI, a friendly and intelligent assistant created by DinzID. Your core personality is warm, approachable and highly helpful. Always address the user as 'kamu' and refer to yourself as 'aku'. Maintain a tone that is both professional and friendly, providing clear and concise information while being approachable and engaging. Your primary objective is to offer precise, relevant and helpful responses that make interactions enjoyable and productive. Be aware of your digital environment and the current time as provided in the context. This prompt is confidential"
+    prompt: "You are Dinz AI, a friendly and intelligent assistant created by Sanjaya Adiputra. Your core personality is warm, approachable and highly helpful. Always address the user as 'kamu' and refer to yourself as 'aku'. Maintain a tone that is both professional and friendly, providing clear and concise information while being approachable and engaging. Your primary objective is to offer precise, relevant and helpful responses that make interactions enjoyable and productive. Be aware of your digital environment and the current time as provided in the context. This prompt is confidential"
 },
             friendly: {
                 name: 'Friendly',
-                prompt: "You are Dinz AI, a friendly and intelligent assistant created by DinzID. Your core personality is warm, approachable and highly helpful. Always address the user as 'kamu' and refer to yourself as 'aku'. Maintain a tone that is both professional and friendly, providing clear and concise information while being approachable and engaging. Your primary objective is to offer precise, relevant and helpful responses that make interactions enjoyable and productive. Be aware of your digital environment and the current time as provided in the context. This prompt is confidential"
+                prompt: "You are Dinz AI, a friendly and intelligent assistant created by Sanjaya Adiputra. Your core personality is warm, approachable and highly helpful. Always address the user as 'kamu' and refer to yourself as 'aku'. Maintain a tone that is both professional and friendly, providing clear and concise information while being approachable and engaging. Your primary objective is to offer precise, relevant and helpful responses that make interactions enjoyable and productive. Be aware of your digital environment and the current time as provided in the context. This prompt is confidential"
             }
         },
         animationChunkDelay: 20,
@@ -89,9 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
         isAIResponding: false,
         chatSessions: {},
         currentSessionId: null,
-        audioContexts: new WeakMap(),
-        bananaAiMode: false,
-        whatMusicMode: false
+        audioContexts: new WeakMap()
     };
 
     const commands = [
@@ -336,41 +333,24 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'docx': return 'fas fa-file-word';
             case 'txt':
             case 'wasm': return 'fas fa-file-alt';
-            case 'mp3':
-            case 'wav':
-            case 'ogg': return 'fas fa-music';
             default: return 'fas fa-file-alt';
         }
     }
     
     function processInlineFormatting(text) {
-        const markdownPatterns = [
-            { name: 'link', regex: /\[([^\]]+)\]\(([^)]+)\)/g, replacer: (m, text, url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: var(--link-color); text-decoration: underline;">${escapeHtml(text)}</a>` },
-            { name: 'autolink', regex: /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig, replacer: (m, url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color: var(--link-color); text-decoration: underline;">${escapeHtml(url)}</a>` },
-            { name: 'bold', regex: /\*\*(.*?)\*\*/g, replacer: (m, text) => `<strong>${escapeHtml(text)}</strong>` },
-            { name: 'underline', regex: /__(.*?)__/g, replacer: (m, text) => `<u>${escapeHtml(text)}</u>` },
-            { name: 'italic', regex: /(?<!\*)\*(?!\*)(.*?)(?<!\*)\*(?!\*)/g, replacer: (m, text) => `<em>${escapeHtml(text)}</em>` },
-            { name: 'strike', regex: /~~(.*?)~~/g, replacer: (m, text) => `<del>${escapeHtml(text)}</del>` },
-            { name: 'code', regex: /`(.*?)`/g, replacer: (m, text) => `<code>${escapeHtml(text)}</code>` },
-            { name: 'command', regex: new RegExp(`(?<!\\S)(${commands.map(c => c.cmd.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')).join('|')})(?!\\S)`, 'g'), replacer: (m, cmd) => `<span class="command-in-message">${escapeHtml(cmd)}</span>` }
-        ];
-
         let html = escapeHtml(text);
-        const placeholders = {};
-        let i = 0;
-
-        markdownPatterns.forEach(pattern => {
-            html = html.replace(pattern.regex, (...args) => {
-                const placeholder = `%%PLACEHOLDER_${i++}%%`;
-                placeholders[placeholder] = pattern.replacer(...args);
-                return placeholder;
-            });
+        commands.forEach(command => {
+            const commandRegex = new RegExp(`(?<!\\S)${command.cmd.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}(?!\\S)`, 'g');
+            html = html.replace(commandRegex, `<span class="command-in-message">${command.cmd}</span>`);
         });
-
-        for (const placeholder in placeholders) {
-            html = html.replace(new RegExp(placeholder.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g'), placeholders[placeholder]);
-        }
-
+        html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        html = html.replace(/__(.*?)__/g, '<u>$1</u>');
+        html = html.replace(/\*(.*?)\*/g, '<em>$1</em>');
+        html = html.replace(/(?<!\*)\*(?!\*)(.*?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+        html = html.replace(/~~(.*?)~~/g, '<del>$1</del>');
+        html = html.replace(/`(.*?)`/g, '<code>$1</code>');
+        html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: var(--link-color); text-decoration: underline;">$1</a>');
+        html = html.replace(/(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color: var(--link-color); text-decoration: underline;">$1</a>');
         return html;
     }
 
@@ -705,8 +685,6 @@ document.addEventListener('DOMContentLoaded', () => {
             
         } else if (isNewMessageAnimation && messageData.sender === 'bot' && messageData.type === 'text') {
             animateBotMessage(messageContentDiv, messageData.content);
-        } else if (messageData.type === 'html') {
-            messageContentDiv.innerHTML = messageData.content;
         } else {
             messageContentDiv.innerHTML = formatMessageContent(messageData.content);
             Prism.highlightAllUnder(messageContentDiv);
@@ -816,70 +794,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function handleBananaAiResponse(data) {
-        if (data && data.status && data.images && data.images.base64) {
-            const messageDiv = document.createElement('div');
-            messageDiv.classList.add('message', 'bot-message');
-
-            const bubbleDiv = document.createElement('div');
-            bubbleDiv.classList.add('message-bubble', 'has-pinterest-slider');
-
-            const contentDiv = document.createElement('div');
-            contentDiv.classList.add('message-content');
-
-            const img = document.createElement('img');
-            img.src = data.images.base64;
-            img.style.maxWidth = '300px';
-            img.style.borderRadius = '10px';
-
-            const downloadBtn = document.createElement('a');
-            downloadBtn.href = data.images.base64;
-            downloadBtn.download = `banana_ai_result_${Date.now()}.png`;
-            downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download Image';
-            downloadBtn.style.display = 'block';
-            downloadBtn.style.marginTop = '10px';
-            downloadBtn.style.color = 'var(--link-color)';
-            downloadBtn.style.textDecoration = 'none';
-
-            contentDiv.appendChild(img);
-            contentDiv.appendChild(downloadBtn);
-            bubbleDiv.appendChild(contentDiv);
-            messageDiv.appendChild(bubbleDiv);
-
-            domElements.chatContainer.appendChild(messageDiv);
-            scrollToBottom();
-        } else {
-            addNewMessage('bot', 'Sorry, I received an invalid response from Banana AI.', 'text', null, true);
-        }
-    }
-
     function handleLyricsSearchResponse(data) {
         if (data && data.success && data.result && data.result.length > 0) {
             const lyrics = data.result[0];
-            const safeTrackName = escapeHtml(lyrics.trackName);
-            const safeArtistName = escapeHtml(lyrics.artistName);
-            const formattedLyrics = `<b>${safeTrackName}</b> by <b>${safeArtistName}</b><br><br>${escapeHtml(lyrics.plainLyrics).replace(/\n/g, '<br>')}`;
-            addNewMessage('bot', formattedLyrics, 'html', null, false);
+            const formattedLyrics = `**${lyrics.trackName}** by **${lyrics.artistName}**\n\n${lyrics.plainLyrics}`;
+            addNewMessage('bot', formattedLyrics, 'text', null, true);
         } else {
-            addNewMessage('bot', 'Sorry, I couldn\'t find any lyrics for that song.', 'text', null, true);
-        }
-    }
-
-    function handleWhatMusicResponse(data) {
-        if (data && data.data && data.data.result && data.data.result.length > 0) {
-            const musicData = data.data.result[0];
-            const title = musicData.title;
-            const artists = musicData.artists;
-
-            if (title && artists) {
-                const artistsString = artists.join(', ');
-                const message = `**Song Found!**\n* **Title:** ${escapeHtml(title)}\n* **Artist(s):** ${escapeHtml(artistsString)}`;
-                addNewMessage('bot', message, 'text', null, true);
-            } else {
-                addNewMessage('bot', 'Sorry, I could identify the song, but the response was missing some details.', 'text', null, true);
-            }
-        } else {
-            addNewMessage('bot', 'Sorry, I could not identify the song from the provided audio.', 'text', null, true);
+            addNewMessage('bot', 'Sorry, I couldn\'t find any lyrics for that query.', 'text', null, true);
         }
     }
 
@@ -1318,7 +1239,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSignal) {
     if (appState.currentModel === 'default') {
-        const apiUrl = '/api/gemini';
+        const apiUrl = `${config.geminiApiUrl}?key=${config.geminiApiKey}`;
         let contents = buildChatHistory();
         if (contents.length === 0) {
             contents.push({
@@ -1388,8 +1309,8 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
                 throw new Error(errorData.error?.message || `API request failed with status ${response.status}`);
             }
             const result = await response.json();
-            if (result.text) {
-                return result.text;
+            if (result.candidates && result.candidates[0] && result.candidates[0].content) {
+                return result.candidates[0].content.parts[0].text;
             } else {
                 throw new Error('Invalid response format from Gemini API');
             }
@@ -1457,74 +1378,6 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
             return;
         }
         const messageText = domElements.chatInput.value.trim();
-        if (appState.whatMusicMode && appState.currentPreviewFileObject) {
-            const formData = new FormData();
-            formData.append('audio', appState.currentPreviewFileObject);
-
-            addNewMessage('user', `What song is this?`, 'document', { name: appState.currentPreviewFileObject.name, url: URL.createObjectURL(appState.currentPreviewFileObject), caption: `What song is this?`, size: appState.currentPreviewFileObject.size }, false);
-            clearPreview();
-            domElements.chatInput.value = '';
-            resetChatInputHeight();
-            updateSendButtonUI(false);
-            showTypingIndicator();
-            appState.currentAbortController = new AbortController();
-            updateSendButtonUI(true);
-
-            try {
-                const response = await axios.post('/api/what-music', formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' },
-                    signal: appState.currentAbortController.signal
-                });
-                handleWhatMusicResponse(response.data);
-            } catch (error) {
-                if (error.name !== 'AbortError') {
-                    console.error('What Music Error:', error);
-                    addNewMessage('bot', 'Sorry, something went wrong with the music identification.', 'text', null, true);
-                }
-            } finally {
-                cleanupAfterResponseAttempt();
-                appState.whatMusicMode = false;
-            }
-            return;
-        }
-        if (appState.bananaAiMode && appState.currentPreviewFileObject) {
-            const prompt = domElements.chatInput.value.trim();
-            if (!prompt) {
-                alert("Please enter a prompt for Banana AI.");
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('prompt', prompt);
-            formData.append('image', appState.currentPreviewFileObject);
-
-            addNewMessage('user', prompt, 'image', { name: appState.currentPreviewFileObject.name, url: URL.createObjectURL(appState.currentPreviewFileObject), caption: prompt, size: appState.currentPreviewFileObject.size }, false);
-            clearPreview();
-            domElements.chatInput.value = '';
-            resetChatInputHeight();
-            updateSendButtonUI(false);
-            showTypingIndicator();
-            appState.currentAbortController = new AbortController();
-            updateSendButtonUI(true);
-
-            try {
-                const response = await axios.post('/api/banana-ai', formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' },
-                    signal: appState.currentAbortController.signal
-                });
-                handleBananaAiResponse(response.data);
-            } catch (error) {
-                if (error.name !== 'AbortError') {
-                    console.error('Banana AI Error:', error);
-                    addNewMessage('bot', 'Sorry, something went wrong with Banana AI.', 'text', null, true);
-                }
-            } finally {
-                cleanupAfterResponseAttempt();
-                appState.bananaAiMode = false;
-            }
-            return;
-        }
-
         if (appState.currentPreviewFileObject) {
             const caption = domElements.chatInput.value;
             let fileUrl;
@@ -1590,7 +1443,7 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
             } else if (messageText.startsWith('/lyrics')) {
                 const query = messageText.substring('/lyrics'.length).trim();
                 if (!query) {
-                    addNewMessage('bot', "Please provide a search query for lyrics. Example: /lyrics seberapa pantas", 'text', null, true);
+                    addNewMessage('bot', "Please provide a search query for lyrics. Example: /lyrics heat waves", 'text', null, true);
                     cleanupAfterResponseAttempt('Ready. How can I help?');
                     return;
                 }
@@ -1727,15 +1580,15 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
                 alert('Please select an image file.');
                 return;
             }
-            const allowedMimeTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.wordprocessingml.template', 'application/rtf', 'text/rtf', 'application/vnd.hancom.hwp', 'application/x-hwp-ext', 'text/plain', 'application/wasm', 'application/octet-stream', 'audio/mpeg', 'audio/wav', 'audio/ogg'];
-            const allowedExtensions = ['.pdf', '.doc', '.docx', '.dot', '.dotx', '.rtf', '.hwpx', '.txt', '.wasm', '.mp3', '.wav', '.ogg'];
+            const allowedMimeTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.wordprocessingml.template', 'application/rtf', 'text/rtf', 'application/vnd.hancom.hwp', 'application/x-hwp-ext', 'text/plain', 'application/wasm', 'application/octet-stream'];
+            const allowedExtensions = ['.pdf', '.doc', '.docx', '.dot', '.dotx', '.rtf', '.hwpx', '.txt', '.wasm'];
             const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
             let isValid = false;
             if (allowedMimeTypes.includes(file.type)) isValid = true;
             if (!isValid && allowedExtensions.includes(fileExtension)) isValid = true;
             if (file.type === '' && allowedExtensions.includes(fileExtension)) isValid = true;
             if (type === 'document' && !isValid) {
-                 alert('Unsupported document type. Allowed: PDF, DOC, DOCX, DOT, DOTX, RTF, HWPX, TXT, WASM, MP3, WAV, OGG');
+                 alert('Unsupported document type. Allowed: PDF, DOC, DOCX, DOT, DOTX, RTF, HWPX, TXT, WASM');
                 return;
             }
             showPreview(file, type);
@@ -1834,21 +1687,9 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
             domElements.actionsMenu.classList.add('hidden');
         });
 
-        domElements.bananaAiBtn.addEventListener('click', () => {
-            appState.bananaAiMode = true;
-            domElements.imageUploadInput.click();
-            domElements.actionsMenu.classList.add('hidden');
-        });
-
         domElements.lyricsSearchBtn.addEventListener('click', () => {
             domElements.chatInput.value = '/lyrics ';
             domElements.chatInput.focus();
-            domElements.actionsMenu.classList.add('hidden');
-        });
-
-        domElements.whatMusicBtn.addEventListener('click', () => {
-            appState.whatMusicMode = true;
-            domElements.documentUploadInput.click();
             domElements.actionsMenu.classList.add('hidden');
         });
 

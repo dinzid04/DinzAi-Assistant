@@ -11,7 +11,6 @@ const PORT = process.env.PORT || 3000;
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/api/neko', async (req, res) => {
@@ -30,62 +29,6 @@ app.get('/api/neko', async (req, res) => {
     }
 });
 
-app.post('/api/gemini', async (req, res) => {
-    const geminiApiKey = process.env.GEMINI_API_KEY;
-    if (!geminiApiKey) {
-        return res.status(500).json({ error: 'Gemini API key not configured.' });
-    }
-
-    const { contents, generationConfig } = req.body;
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
-
-    try {
-        const response = await axios.post(apiUrl, { contents, generationConfig }, {
-            headers: { 'Content-Type': 'application/json' }
-        });
-
-        if (response.data.candidates && response.data.candidates[0] && response.data.candidates[0].content) {
-            res.json({ text: response.data.candidates[0].content.parts[0].text });
-        } else {
-            res.status(500).json({ error: 'Invalid response format from Gemini API' });
-        }
-    } catch (error) {
-        console.error('Gemini API Error:', error.response ? error.response.data : error.message);
-        res.status(500).json({ error: 'Failed to fetch from Gemini API' });
-    }
-});
-
-app.post('/api/banana-ai', upload.single('image'), async (req, res) => {
-    try {
-        const { prompt } = req.body;
-        const image = req.file;
-
-        if (!prompt || !image) {
-            return res.status(400).json({ error: 'Prompt and image are required' });
-        }
-
-        const formData = new FormData();
-        formData.append('prompt', prompt);
-        formData.append('image', image.buffer, {
-            filename: image.originalname,
-            contentType: image.mimetype,
-        });
-
-        const response = await axios.post('https://swagger-nextjs-one.vercel.app/api/ai/nano-banana', formData, {
-            headers: {
-                ...formData.getHeaders(),
-                'accept': 'application/json',
-            },
-            responseType: 'json'
-        });
-
-        res.json(response.data);
-    } catch (error) {
-        console.error('Error proxying to Banana AI API:', error.response ? error.response.data : error.message);
-        res.status(500).json({ error: 'Failed to fetch from Banana AI API' });
-    }
-});
-
 app.get('/api/lyrics-search', async (req, res) => {
     try {
         const { q } = req.query;
@@ -94,42 +37,14 @@ app.get('/api/lyrics-search', async (req, res) => {
         }
 
         const response = await axios.get('https://api.nekolabs.web.id/discovery/lyrics/search', {
-            params: { q }
+            params: { q },
+            headers: { 'accept': 'application/json' }
         });
 
         res.json(response.data);
     } catch (error) {
         console.error('Error fetching from Lyrics API:', error.response ? error.response.data : error.message);
         res.status(500).json({ error: 'Failed to fetch from Lyrics API' });
-    }
-});
-
-app.post('/api/what-music', upload.single('audio'), async (req, res) => {
-    try {
-        const audio = req.file;
-
-        if (!audio) {
-            return res.status(400).json({ error: 'Audio file is required' });
-        }
-
-        const formData = new FormData();
-        formData.append('audio', audio.buffer, {
-            filename: audio.originalname,
-            contentType: audio.mimetype,
-        });
-
-        const response = await axios.post('https://swagger-nextjs-one.vercel.app/api/tools/what-music', formData, {
-            headers: {
-                ...formData.getHeaders(),
-                'accept': 'application/json',
-            },
-            responseType: 'json'
-        });
-
-        res.json(response.data);
-    } catch (error) {
-        console.error('Error proxying to What Music API:', error.response ? error.response.data : error.message);
-        res.status(500).json({ error: 'Failed to fetch from What Music API' });
     }
 });
 
