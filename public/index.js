@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
         createImageShortcutBtn: document.getElementById('createImageShortcutBtn'),
         bananaAiBtn: document.getElementById('bananaAiBtn'),
         lyricsSearchBtn: document.getElementById('lyricsSearchBtn'),
+        whatMusicBtn: document.getElementById('whatMusicBtn'),
         aiModelSelect: document.getElementById('aiModelSelect'),
         focusModeBtn: document.getElementById('focusModeBtn'),
         focusModeContainer: document.getElementById('focusModeContainer'),
@@ -90,7 +91,8 @@ document.addEventListener('DOMContentLoaded', () => {
         chatSessions: {},
         currentSessionId: null,
         audioContexts: new WeakMap(),
-        bananaAiMode: false
+        bananaAiMode: false,
+        whatMusicMode: false
     };
 
     const commands = [
@@ -335,6 +337,9 @@ document.addEventListener('DOMContentLoaded', () => {
             case 'docx': return 'fas fa-file-word';
             case 'txt':
             case 'wasm': return 'fas fa-file-alt';
+            case 'mp3':
+            case 'wav':
+            case 'ogg': return 'fas fa-music';
             default: return 'fas fa-file-alt';
         }
     }
@@ -843,6 +848,23 @@ document.addEventListener('DOMContentLoaded', () => {
             addNewMessage('bot', formattedLyrics, 'html', null, false);
         } else {
             addNewMessage('bot', 'Sorry, I couldn\'t find any lyrics for that song.', 'text', null, true);
+        }
+    }
+
+    function handleWhatMusicResponse(data) {
+        if (data && data.data && data.data.result && data.data.result.length > 0) {
+            const musicData = data.data.result[0];
+            const title = musicData.title;
+            const artists = musicData.artists;
+
+            if (title && artists) {
+                const message = `**Song Found!**\n* **Title:** ${escapeHtml(title)}\n* **Artist(s):** ${escapeHtml(artists)}`;
+                addNewMessage('bot', message, 'text', null, true);
+            } else {
+                addNewMessage('bot', 'Sorry, I could identify the song, but the response was missing some details.', 'text', null, true);
+            }
+        } else {
+            addNewMessage('bot', 'Sorry, I could not identify the song from the provided audio.', 'text', null, true);
         }
     }
 
@@ -1420,6 +1442,36 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
             return;
         }
         const messageText = domElements.chatInput.value.trim();
+        if (appState.whatMusicMode && appState.currentPreviewFileObject) {
+            const formData = new FormData();
+            formData.append('audio', appState.currentPreviewFileObject);
+
+            addNewMessage('user', `What song is this?`, 'document', { name: appState.currentPreviewFileObject.name, url: URL.createObjectURL(appState.currentPreviewFileObject), caption: `What song is this?`, size: appState.currentPreviewFileObject.size }, false);
+            clearPreview();
+            domElements.chatInput.value = '';
+            resetChatInputHeight();
+            updateSendButtonUI(false);
+            showTypingIndicator();
+            appState.currentAbortController = new AbortController();
+            updateSendButtonUI(true);
+
+            try {
+                const response = await axios.post('/api/what-music', formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' },
+                    signal: appState.currentAbortController.signal
+                });
+                handleWhatMusicResponse(response.data);
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    console.error('What Music Error:', error);
+                    addNewMessage('bot', 'Sorry, something went wrong with the music identification.', 'text', null, true);
+                }
+            } finally {
+                cleanupAfterResponseAttempt();
+                appState.whatMusicMode = false;
+            }
+            return;
+        }
         if (appState.bananaAiMode && appState.currentPreviewFileObject) {
             const prompt = domElements.chatInput.value.trim();
             if (!prompt) {
@@ -1660,15 +1712,15 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
                 alert('Please select an image file.');
                 return;
             }
-            const allowedMimeTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.wordprocessingml.template', 'application/rtf', 'text/rtf', 'application/vnd.hancom.hwp', 'application/x-hwp-ext', 'text/plain', 'application/wasm', 'application/octet-stream'];
-            const allowedExtensions = ['.pdf', '.doc', '.docx', '.dot', '.dotx', '.rtf', '.hwpx', '.txt', '.wasm'];
+            const allowedMimeTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/vnd.openxmlformats-officedocument.wordprocessingml.template', 'application/rtf', 'text/rtf', 'application/vnd.hancom.hwp', 'application/x-hwp-ext', 'text/plain', 'application/wasm', 'application/octet-stream', 'audio/mpeg', 'audio/wav', 'audio/ogg'];
+            const allowedExtensions = ['.pdf', '.doc', '.docx', '.dot', '.dotx', '.rtf', '.hwpx', '.txt', '.wasm', '.mp3', '.wav', '.ogg'];
             const fileExtension = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
             let isValid = false;
             if (allowedMimeTypes.includes(file.type)) isValid = true;
             if (!isValid && allowedExtensions.includes(fileExtension)) isValid = true;
             if (file.type === '' && allowedExtensions.includes(fileExtension)) isValid = true;
             if (type === 'document' && !isValid) {
-                 alert('Unsupported document type. Allowed: PDF, DOC, DOCX, DOT, DOTX, RTF, HWPX, TXT, WASM');
+                 alert('Unsupported document type. Allowed: PDF, DOC, DOCX, DOT, DOTX, RTF, HWPX, TXT, WASM, MP3, WAV, OGG');
                 return;
             }
             showPreview(file, type);
@@ -1776,6 +1828,12 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
         domElements.lyricsSearchBtn.addEventListener('click', () => {
             domElements.chatInput.value = '/lyrics ';
             domElements.chatInput.focus();
+            domElements.actionsMenu.classList.add('hidden');
+        });
+
+        domElements.whatMusicBtn.addEventListener('click', () => {
+            appState.whatMusicMode = true;
+            domElements.documentUploadInput.click();
             domElements.actionsMenu.classList.add('hidden');
         });
 

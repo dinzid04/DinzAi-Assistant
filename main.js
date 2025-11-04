@@ -78,6 +78,35 @@ app.get('/api/lyrics-search', async (req, res) => {
     }
 });
 
+app.post('/api/what-music', upload.single('audio'), async (req, res) => {
+    try {
+        const audio = req.file;
+
+        if (!audio) {
+            return res.status(400).json({ error: 'Audio file is required' });
+        }
+
+        const formData = new FormData();
+        formData.append('audio', audio.buffer, {
+            filename: audio.originalname,
+            contentType: audio.mimetype,
+        });
+
+        const response = await axios.post('https://swagger-nextjs-one.vercel.app/api/tools/what-music', formData, {
+            headers: {
+                ...formData.getHeaders(),
+                'accept': 'application/json',
+            },
+            responseType: 'json'
+        });
+
+        res.json(response.data);
+    } catch (error) {
+        console.error('Error proxying to What Music API:', error.response ? error.response.data : error.message);
+        res.status(500).json({ error: 'Failed to fetch from What Music API' });
+    }
+});
+
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
