@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
         bananaAiBtn: document.getElementById('bananaAiBtn'),
         lyricsSearchBtn: document.getElementById('lyricsSearchBtn'),
         whatMusicBtn: document.getElementById('whatMusicBtn'),
+        animagineBtn: document.getElementById('animagineBtn'),
         aiModelSelect: document.getElementById('aiModelSelect'),
         focusModeBtn: document.getElementById('focusModeBtn'),
         focusModeContainer: document.getElementById('focusModeContainer'),
@@ -92,7 +93,14 @@ document.addEventListener('DOMContentLoaded', () => {
         currentSessionId: null,
         audioContexts: new WeakMap(),
         bananaAiMode: false,
-        whatMusicMode: false
+        whatMusicMode: false,
+        animagineState: {
+            isActive: false,
+            step: 'prompt',
+            prompt: '',
+            ratio: '',
+            model: ''
+        }
     };
 
     const commands = [
@@ -709,8 +717,14 @@ document.addEventListener('DOMContentLoaded', () => {
             animateBotMessage(messageContentDiv, messageData.content);
         } else if (messageData.type === 'html') {
             messageContentDiv.innerHTML = messageData.content;
+            if (messageData.customHtml) {
+                messageContentDiv.innerHTML += messageData.customHtml;
+            }
         } else {
             messageContentDiv.innerHTML = formatMessageContent(messageData.content);
+            if (messageData.customHtml) {
+                messageContentDiv.innerHTML += messageData.customHtml;
+            }
             Prism.highlightAllUnder(messageContentDiv);
         }
 
@@ -815,6 +829,43 @@ document.addEventListener('DOMContentLoaded', () => {
         domElements.chatContainer.appendChild(messageDiv);
         if (!isNewMessageAnimation) {
             scrollToBottom();
+        }
+    }
+
+    function handleAnimagineResponse(data) {
+        if (data && data.status && data.images && data.images.base64) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', 'bot-message');
+
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.classList.add('message-bubble');
+
+            const contentDiv = document.createElement('div');
+            contentDiv.classList.add('message-content');
+
+            const img = document.createElement('img');
+            img.src = data.images.base64;
+            img.style.maxWidth = '300px';
+            img.style.borderRadius = '10px';
+
+            const downloadBtn = document.createElement('a');
+            downloadBtn.href = data.images.base64;
+            downloadBtn.download = `animagine_result_${Date.now()}.png`;
+            downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download Image';
+            downloadBtn.style.display = 'block';
+            downloadBtn.style.marginTop = '10px';
+            downloadBtn.style.color = 'var(--link-color)';
+            downloadBtn.style.textDecoration = 'none';
+
+            contentDiv.appendChild(img);
+            contentDiv.appendChild(downloadBtn);
+            bubbleDiv.appendChild(contentDiv);
+            messageDiv.appendChild(bubbleDiv);
+
+            domElements.chatContainer.appendChild(messageDiv);
+            scrollToBottom();
+        } else {
+            addNewMessage('bot', 'Sorry, I received an invalid response from Animagine AI.', 'text', null, true);
         }
     }
 
@@ -1042,7 +1093,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function addNewMessage(sender, content, type = 'text', liveFileInfo = null, isAnimated = false) {
+    function addNewMessage(sender, content, type = 'text', liveFileInfo = null, isAnimated = false, customHtml = null) {
         const now = new Date();
         const timestamp = formatTimestamp(now);
         const isoTimestamp = now.toISOString();
@@ -1069,7 +1120,8 @@ document.addEventListener('DOMContentLoaded', () => {
             fileInfo: fileInfoForStore,
             timestamp,
             isoTimestamp,
-            liveUrl: (liveFileInfo && liveFileInfo.url) ? liveFileInfo.url : null
+            liveUrl: (liveFileInfo && liveFileInfo.url) ? liveFileInfo.url : null,
+            customHtml
         };
         const currentSession = appState.chatSessions[appState.currentSessionId];
         const isFirstMessageOfSession = currentSession.messages.length === 0;
@@ -1459,6 +1511,10 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
             return;
         }
         const messageText = domElements.chatInput.value.trim();
+        if (appState.animagineState.isActive) {
+            handleAnimagineFlow(messageText);
+            return;
+        }
         if (appState.whatMusicMode && appState.currentPreviewFileObject) {
             const formData = new FormData();
             formData.append('audio', appState.currentPreviewFileObject);
@@ -1854,6 +1910,11 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
             domElements.actionsMenu.classList.add('hidden');
         });
 
+        domElements.animagineBtn.addEventListener('click', () => {
+            startAnimagineFlow();
+            domElements.actionsMenu.classList.add('hidden');
+        });
+
         domElements.aiModelSelect.addEventListener('change', (e) => {
             appState.currentModel = e.target.value;
             domElements.actionsMenu.classList.add('hidden');
@@ -1957,6 +2018,13 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
                     });
                 }
             }
+            const choiceBtn = event.target.closest('.animagine-choice-btn');
+            if (choiceBtn) {
+                const value = choiceBtn.dataset.value;
+                if (appState.animagineState.isActive) {
+                    handleAnimagineFlow(value);
+                }
+            }
             const downloadBtn = event.target.closest('.download-code-btn');
             if (downloadBtn) {
                 const wrapper = downloadBtn.closest('.code-block-wrapper');
@@ -1980,6 +2048,52 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
                 }
             }
         });
+    }
+
+    function startAnimagineFlow() {
+        appState.animagineState.isActive = true;
+        appState.animagineState.step = 'prompt';
+        addNewMessage('bot', 'Please enter a prompt for the image you want to create.', 'text', null, true);
+        domElements.chatInput.placeholder = 'Enter your prompt...';
+    }
+
+    async function handleAnimagineFlow(userInput) {
+        const { step } = appState.animagineState;
+        addNewMessage('user', userInput, 'text', null, false);
+        domElements.chatInput.value = '';
+        resetChatInputHeight();
+
+        if (step === 'prompt') {
+            appState.animagineState.prompt = userInput;
+            appState.animagineState.step = 'ratio';
+            addNewMessage('bot', 'Choose a ratio:', 'html', null, false, `
+                <button class="animagine-choice-btn" data-value="1:1">1:1</button>
+                <button class="animagine-choice-btn" data-value="16:9">16:9</button>
+                <button class="animagine-choice-btn" data-value="9:16">9:16</button>
+            `);
+        } else if (step === 'ratio') {
+            appState.animagineState.ratio = userInput;
+            appState.animagineState.step = 'model';
+            addNewMessage('bot', 'Choose a model:', 'html', null, false, `
+                <button class="animagine-choice-btn" data-value="animagine">Animagine</button>
+                <button class="animagine-choice-btn" data-value="nsfw">NSFW</button>
+            `);
+        } else if (step === 'model') {
+            appState.animagineState.model = userInput;
+            const { prompt, ratio, model } = appState.animagineState;
+
+            showTypingIndicator();
+            try {
+                const response = await axios.get(`/api/animagine?prompt=${encodeURIComponent(prompt)}&ratio=${encodeURIComponent(ratio)}&model=${encodeURIComponent(model)}`);
+                handleAnimagineResponse(response.data);
+            } catch (error) {
+                addNewMessage('bot', `Sorry, something went wrong with Animagine AI. Error: ${error.message}`, 'text', null, true);
+            } finally {
+                removeTypingIndicator();
+                appState.animagineState.isActive = false;
+                domElements.chatInput.placeholder = 'Type a message...';
+            }
+        }
     }
     
     

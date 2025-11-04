@@ -107,6 +107,25 @@ app.post('/api/what-music', upload.single('audio'), async (req, res) => {
     }
 });
 
+app.get('/api/animagine', async (req, res) => {
+    try {
+        const { prompt, ratio, model } = req.query;
+        if (!prompt || !ratio || !model) {
+            return res.status(400).json({ error: 'Prompt, ratio, and model are required' });
+        }
+
+        const response = await axios.get('https://swagger-nextjs-one.vercel.app/api/ai/animagine', {
+            params: { prompt, ratio, model },
+            responseType: 'json'
+        });
+
+        res.json(response.data);
+    } catch (error) {
+        console.error('Error proxying to Animagine API:', error.response ? error.response.data : error.message);
+        res.status(500).json({ error: 'Failed to fetch from Animagine API' });
+    }
+});
+
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
