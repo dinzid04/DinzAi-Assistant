@@ -1,0 +1,16 @@
+{
+  "name": "Dinz AI",
+  "short_name": "Dinz AI",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#3b9eff",
+  "iconUrl": "https://cdn.dinzid.biz.id/nb17.png",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
