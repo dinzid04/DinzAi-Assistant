@@ -839,36 +839,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleAnimagineResponse(data) {
         if (data && data.status && data.images && data.images.base64) {
-            const messageDiv = document.createElement('div');
-            messageDiv.classList.add('message', 'bot-message');
-
-            const bubbleDiv = document.createElement('div');
-            bubbleDiv.classList.add('message-bubble');
-
-            const contentDiv = document.createElement('div');
-            contentDiv.classList.add('message-content');
-
-            const img = document.createElement('img');
-            img.src = data.images.base64;
-            img.style.maxWidth = '300px';
-            img.style.borderRadius = '10px';
-
-            const downloadBtn = document.createElement('a');
-            downloadBtn.href = data.images.base64;
-            downloadBtn.download = `animagine_result_${Date.now()}.png`;
-            downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download Image';
-            downloadBtn.style.display = 'block';
-            downloadBtn.style.marginTop = '10px';
-            downloadBtn.style.color = 'var(--link-color)';
-            downloadBtn.style.textDecoration = 'none';
-
-            contentDiv.appendChild(img);
-            contentDiv.appendChild(downloadBtn);
-            bubbleDiv.appendChild(contentDiv);
-            messageDiv.appendChild(bubbleDiv);
-
-            domElements.chatContainer.appendChild(messageDiv);
-            scrollToBottom();
+            const imageName = `animagine_result_${Date.now()}.png`;
+            const caption = "Here is your image from Animagine AI:";
+            addNewMessage('bot', caption, 'image', { name: imageName, url: data.images.base64, caption: caption }, false);
         } else {
             addNewMessage('bot', 'Sorry, I received an invalid response from Animagine AI.', 'text', null, true);
         }
@@ -876,36 +849,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleBananaAiResponse(data) {
         if (data && data.status && data.images && data.images.base64) {
-            const messageDiv = document.createElement('div');
-            messageDiv.classList.add('message', 'bot-message');
-
-            const bubbleDiv = document.createElement('div');
-            bubbleDiv.classList.add('message-bubble', 'has-pinterest-slider');
-
-            const contentDiv = document.createElement('div');
-            contentDiv.classList.add('message-content');
-
-            const img = document.createElement('img');
-            img.src = data.images.base64;
-            img.style.maxWidth = '300px';
-            img.style.borderRadius = '10px';
-
-            const downloadBtn = document.createElement('a');
-            downloadBtn.href = data.images.base64;
-            downloadBtn.download = `banana_ai_result_${Date.now()}.png`;
-            downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download Image';
-            downloadBtn.style.display = 'block';
-            downloadBtn.style.marginTop = '10px';
-            downloadBtn.style.color = 'var(--link-color)';
-            downloadBtn.style.textDecoration = 'none';
-
-            contentDiv.appendChild(img);
-            contentDiv.appendChild(downloadBtn);
-            bubbleDiv.appendChild(contentDiv);
-            messageDiv.appendChild(bubbleDiv);
-
-            domElements.chatContainer.appendChild(messageDiv);
-            scrollToBottom();
+            const imageName = `banana_ai_result_${Date.now()}.png`;
+            const caption = "Here is your image from Banana AI:";
+            addNewMessage('bot', caption, 'image', { name: imageName, url: data.images.base64, caption: caption }, false);
         } else {
             addNewMessage('bot', 'Sorry, I received an invalid response from Banana AI.', 'text', null, true);
         }
