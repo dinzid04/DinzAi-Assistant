@@ -47,7 +47,10 @@ document.addEventListener('DOMContentLoaded', () => {
         personaDropdownBtn: document.getElementById('personaDropdownBtn'),
         personaDropdownMenu: document.getElementById('personaDropdownMenu'),
         personaCycleBtn: document.getElementById('personaCycleBtn'),
-        currentPersonaName: document.getElementById('currentPersonaName')
+        currentPersonaName: document.getElementById('currentPersonaName'),
+        imagePreviewModal: document.getElementById('imagePreviewModal'),
+        imagePreviewContent: document.getElementById('imagePreviewContent'),
+        closeImagePreview: document.getElementById('closeImagePreview')
     };
 
     const config = {
@@ -2072,6 +2075,15 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
                     URL.revokeObjectURL(url);
                 }
             }
+            const imgPreview = event.target.closest('.attached-file-container img');
+            if (imgPreview) {
+                domElements.imagePreviewModal.style.display = 'flex';
+                domElements.imagePreviewContent.src = imgPreview.src;
+            }
+        });
+
+        domElements.closeImagePreview.addEventListener('click', () => {
+            domElements.imagePreviewModal.style.display = 'none';
         });
     }
 
