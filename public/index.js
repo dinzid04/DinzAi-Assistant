@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
         lyricsSearchBtn: document.getElementById('lyricsSearchBtn'),
         whatMusicBtn: document.getElementById('whatMusicBtn'),
         animagineBtn: document.getElementById('animagineBtn'),
+        playBtn: document.getElementById('playBtn'),
         aiModelSelect: document.getElementById('aiModelSelect'),
         focusModeBtn: document.getElementById('focusModeBtn'),
         focusModeContainer: document.getElementById('focusModeContainer'),
@@ -106,6 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const commands = [
         { cmd: "/create-image", desc: "Generate image from text." },
         { cmd: "/lyrics", desc: "Search for song lyrics." },
+        { cmd: "/play", desc: "Play a song." },
     ];
 
     const placeholderSuggestions = [
@@ -1664,6 +1666,23 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
                 } finally {
                     cleanupAfterResponseAttempt();
                 }
+            } else if (messageText.startsWith('/play')) {
+                const query = messageText.substring('/play'.length).trim();
+                if (!query) {
+                    addNewMessage('bot', "Please provide a search query for the song. Example: /play 505", 'text', null, true);
+                    cleanupAfterResponseAttempt('Ready. How can I help?');
+                    return;
+                }
+                try {
+                    const audioUrl = `/api/play?query=${encodeURIComponent(query)}`;
+                    addNewMessage('bot', `Now playing: ${query}`, 'voice', { name: `${query}.mp3`, url: audioUrl, size: 0, caption: `Now playing: ${query}` }, false);
+                } catch (apiError) {
+                    if (apiError.name !== 'AbortError') {
+                        addNewMessage('bot', `Sorry, I couldn't play the song. Error: ${apiError.message || 'Unknown API error'}`, 'text', null, true);
+                    }
+                } finally {
+                    cleanupAfterResponseAttempt();
+                }
             } else {
                 const responseText = await AI_API_Call(messageText, getDynamicPrompt(), appState.currentSessionId, null, appState.currentAbortController.signal);
                 if (responseText.startsWith('[voice_start]')) {
@@ -1912,6 +1931,12 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
 
         domElements.animagineBtn.addEventListener('click', () => {
             startAnimagineFlow();
+            domElements.actionsMenu.classList.add('hidden');
+        });
+
+        domElements.playBtn.addEventListener('click', () => {
+            domElements.chatInput.value = '/play ';
+            domElements.chatInput.focus();
             domElements.actionsMenu.classList.add('hidden');
         });
 

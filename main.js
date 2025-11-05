@@ -29,6 +29,30 @@ app.get('/api/neko', async (req, res) => {
     }
 });
 
+app.get('/api/play', async (req, res) => {
+    try {
+        const { query } = req.query;
+        if (!query) {
+            return res.status(400).json({ error: 'Query is required' });
+        }
+
+        const response = await axios.get('https://swagger-nextjs-one.vercel.app/api/downloader/ytaudio', {
+            params: { query, direct: true },
+            responseType: 'stream'
+        });
+
+        response.data.on('error', (err) => {
+            console.error('Stream Error:', err);
+            res.status(500).json({ error: 'Failed to fetch audio stream' });
+        });
+
+        response.data.pipe(res);
+    } catch (error) {
+        console.error('Error proxying to play API:', error.response ? error.response.data : error.message);
+        res.status(500).json({ error: 'Failed to fetch from play API' });
+    }
+});
+
 app.post('/api/banana-ai', upload.single('image'), async (req, res) => {
     try {
         const { prompt } = req.body;
