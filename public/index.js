@@ -845,9 +845,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const contentDiv = document.createElement('div');
             contentDiv.classList.add('message-content');
 
-            const imageContainer = document.createElement('div');
-            imageContainer.className = 'ai-image-container';
-
             const img = document.createElement('img');
             img.src = data.images.base64;
             img.style.maxWidth = '300px';
@@ -856,12 +853,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const downloadBtn = document.createElement('a');
             downloadBtn.href = data.images.base64;
             downloadBtn.download = `animagine_result_${Date.now()}.png`;
-            downloadBtn.className = 'ai-image-download-btn';
-            downloadBtn.innerHTML = '<i class="fas fa-download"></i>';
+            downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download Image';
+            downloadBtn.style.display = 'block';
+            downloadBtn.style.marginTop = '10px';
+            downloadBtn.style.color = 'var(--link-color)';
+            downloadBtn.style.textDecoration = 'none';
 
-            imageContainer.appendChild(img);
-            imageContainer.appendChild(downloadBtn);
-            contentDiv.appendChild(imageContainer);
+            contentDiv.appendChild(img);
+            contentDiv.appendChild(downloadBtn);
             bubbleDiv.appendChild(contentDiv);
             messageDiv.appendChild(bubbleDiv);
 
@@ -883,9 +882,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const contentDiv = document.createElement('div');
             contentDiv.classList.add('message-content');
 
-            const imageContainer = document.createElement('div');
-            imageContainer.className = 'ai-image-container';
-
             const img = document.createElement('img');
             img.src = data.images.base64;
             img.style.maxWidth = '300px';
@@ -894,12 +890,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const downloadBtn = document.createElement('a');
             downloadBtn.href = data.images.base64;
             downloadBtn.download = `banana_ai_result_${Date.now()}.png`;
-            downloadBtn.className = 'ai-image-download-btn';
-            downloadBtn.innerHTML = '<i class="fas fa-download"></i>';
+            downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download Image';
+            downloadBtn.style.display = 'block';
+            downloadBtn.style.marginTop = '10px';
+            downloadBtn.style.color = 'var(--link-color)';
+            downloadBtn.style.textDecoration = 'none';
 
-            imageContainer.appendChild(img);
-            imageContainer.appendChild(downloadBtn);
-            contentDiv.appendChild(imageContainer);
+            contentDiv.appendChild(img);
+            contentDiv.appendChild(downloadBtn);
             bubbleDiv.appendChild(contentDiv);
             messageDiv.appendChild(bubbleDiv);
 
