@@ -3,6 +3,9 @@
   functions = "functions"
   publish = "public"
 
+[functions]
+  timeout = 26
+
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/api/:splat"
