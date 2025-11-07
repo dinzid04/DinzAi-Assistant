@@ -1246,6 +1246,43 @@
             background-color: var(--button-hover-bg);
             border-color: var(--primary-color);
         }
+        .ai-image-container {
+            position: relative;
+            display: inline-block;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .ai-image-container img {
+            display: block;
+            max-width: 300px;
+            height: auto;
+        }
+        .ai-image-download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 12px;
+            padding: 10px 16px;
+            background-color: var(--primary-color);
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+        }
+        .ai-image-download-btn:hover {
+            background-color: #2a8ae6; /* Darker shade for hover */
+            transform: scale(1.02);
+        }
+        body.light-mode .ai-image-download-btn:hover {
+            background-color: #357abd;
+        }
+        .ai-image-download-btn i {
+            font-size: 0.9em;
+        }
         @media (min-width: 769px) {
             .sidebar {
                 z-index: 1100;
