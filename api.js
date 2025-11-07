@@ -10,6 +10,8 @@ const app = express();
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
+app.use(express.static(path.join(__dirname, 'public')));
+
 app.get('/api/neko', async (req, res) => {
     try {
         const { text, systemPrompt, sessionId } = req.query;
@@ -145,6 +147,11 @@ app.get('/api/animagine', async (req, res) => {
         console.error('Error proxying to Animagine API:', error.response ? error.response.data : error.message);
         res.status(500).json({ error: 'Failed to fetch from Animagine API' });
     }
+});
+
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 module.exports = app;
