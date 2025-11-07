@@ -7,12 +7,13 @@ const FormData = require('form-data');
 const serverless = require('serverless-http');
 
 const app = express();
+const router = express.Router();
 
 // Multer setup for file uploads
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-app.get('/api/neko', async (req, res) => {
+router.get('/neko', async (req, res) => {
     try {
         const { text, systemPrompt, sessionId } = req.query;
         const response = await axios.get('https://api.nekolabs.web.id/ai/gpt/4o-mini-search', {
@@ -20,11 +21,12 @@ app.get('/api/neko', async (req, res) => {
         });
         res.json(response.data);
     } catch (error) {
+        console.error('Error fetching from Neko API:', error.response ? error.response.data : error.message);
         res.status(500).json({ error: 'Failed to fetch from Neko API' });
     }
 });
 
-app.get('/api/play', async (req, res) => {
+router.get('/play', async (req, res) => {
     try {
         const { query } = req.query;
         if (!query) {
@@ -36,11 +38,12 @@ app.get('/api/play', async (req, res) => {
         });
         response.data.pipe(res);
     } catch (error) {
+        console.error('Error proxying to play API:', error.response ? error.response.data : error.message);
         res.status(500).json({ error: 'Failed to fetch from play API' });
     }
 });
 
-app.post('/api/banana-ai', upload.single('image'), async (req, res) => {
+router.post('/banana-ai', upload.single('image'), async (req, res) => {
     try {
         const { prompt } = req.body;
         const image = req.file;
@@ -59,11 +62,12 @@ app.post('/api/banana-ai', upload.single('image'), async (req, res) => {
         });
         res.json(response.data);
     } catch (error) {
+        console.error('Error proxying to Banana AI API:', error.response ? error.response.data : error.message);
         res.status(500).json({ error: 'Failed to fetch from Banana AI API' });
     }
 });
 
-app.get('/api/lyrics-search', async (req, res) => {
+router.get('/lyrics-search', async (req, res) => {
     try {
         const { q } = req.query;
         if (!q) {
@@ -74,11 +78,12 @@ app.get('/api/lyrics-search', async (req, res) => {
         });
         res.json(response.data);
     } catch (error) {
+        console.error('Error fetching from Lyrics API:', error.response ? error.response.data : error.message);
         res.status(500).json({ error: 'Failed to fetch from Lyrics API' });
     }
 });
 
-app.post('/api/what-music', upload.single('audio'), async (req, res) => {
+router.post('/what-music', upload.single('audio'), async (req, res) => {
     try {
         const audio = req.file;
         if (!audio) {
@@ -95,11 +100,12 @@ app.post('/api/what-music', upload.single('audio'), async (req, res) => {
         });
         res.json(response.data);
     } catch (error) {
+        console.error('Error proxying to What Music API:', error.response ? error.response.data : error.message);
         res.status(500).json({ error: 'Failed to fetch from What Music API' });
     }
 });
 
-app.get('/api/animagine', async (req, res) => {
+router.get('/animagine', async (req, res) => {
     try {
         const { prompt, ratio, model } = req.query;
         if (!prompt || !ratio || !model) {
@@ -111,13 +117,13 @@ app.get('/api/animagine', async (req, res) => {
         });
         res.json(response.data);
     } catch (error) {
+        console.error('Error proxying to Animagine API:', error.response ? error.response.data : error.message);
         res.status(500).json({ error: 'Failed to fetch from Animagine API' });
     }
 });
 
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
-});
+// Use the router for all requests to the app
+app.use(router);
 
 module.exports = app;
 module.exports.handler = serverless(app);
