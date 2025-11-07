@@ -851,16 +851,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const img = document.createElement('img');
             img.src = data.images.base64;
 
-            imageContainer.appendChild(img);
-
             const downloadBtn = document.createElement('a');
             downloadBtn.href = data.images.base64;
             downloadBtn.download = `animagine_result_${Date.now()}.png`;
             downloadBtn.className = 'ai-image-download-btn';
-            downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download Image';
+            downloadBtn.innerHTML = '<i class="fas fa-download"></i>';
+
+            imageContainer.appendChild(img);
+            imageContainer.appendChild(downloadBtn);
 
             contentDiv.appendChild(imageContainer);
-            contentDiv.appendChild(downloadBtn);
             bubbleDiv.appendChild(contentDiv);
             messageDiv.appendChild(bubbleDiv);
 
@@ -888,16 +888,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const img = document.createElement('img');
             img.src = data.images.base64;
 
-            imageContainer.appendChild(img);
-
             const downloadBtn = document.createElement('a');
             downloadBtn.href = data.images.base64;
             downloadBtn.download = `banana_ai_result_${Date.now()}.png`;
             downloadBtn.className = 'ai-image-download-btn';
-            downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download Image';
+            downloadBtn.innerHTML = '<i class="fas fa-download"></i>';
+
+            imageContainer.appendChild(img);
+            imageContainer.appendChild(downloadBtn);
 
             contentDiv.appendChild(imageContainer);
-            contentDiv.appendChild(downloadBtn);
             bubbleDiv.appendChild(contentDiv);
             messageDiv.appendChild(bubbleDiv);
 

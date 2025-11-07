@@ -1258,30 +1258,31 @@
             height: auto;
         }
         .ai-image-download-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            margin-top: 12px;
-            padding: 10px 16px;
-            background-color: var(--primary-color);
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 36px;
+            height: 36px;
+            background-color: rgba(0, 0, 0, 0.6);
             color: #ffffff;
             border: none;
-            border-radius: 8px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             text-decoration: none;
-            font-size: 0.9rem;
-            font-weight: 500;
+            font-size: 1rem;
             cursor: pointer;
-            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+            transition: background-color 0.2s, transform 0.1s;
+            z-index: 5;
         }
         .ai-image-download-btn:hover {
-            background-color: #2a8ae6; /* Darker shade for hover */
-            transform: scale(1.02);
-        }
-        body.light-mode .ai-image-download-btn:hover {
-            background-color: #357abd;
+            background-color: rgba(0, 0, 0, 0.8);
+            transform: scale(1.1);
         }
         .ai-image-download-btn i {
-            font-size: 0.9em;
+            font-size: 1em;
+            line-height: 1;
         }
         @media (min-width: 769px) {
             .sidebar {
