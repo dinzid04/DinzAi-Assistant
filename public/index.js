@@ -845,22 +845,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const contentDiv = document.createElement('div');
             contentDiv.classList.add('message-content');
 
+            const imageContainer = document.createElement('div');
+            imageContainer.className = 'ai-image-container';
+
             const img = document.createElement('img');
             img.src = data.images.base64;
-            img.style.maxWidth = '300px';
-            img.style.borderRadius = '10px';
 
             const downloadBtn = document.createElement('a');
             downloadBtn.href = data.images.base64;
             downloadBtn.download = `animagine_result_${Date.now()}.png`;
-            downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download Image';
-            downloadBtn.style.display = 'block';
-            downloadBtn.style.marginTop = '10px';
-            downloadBtn.style.color = 'var(--link-color)';
-            downloadBtn.style.textDecoration = 'none';
+            downloadBtn.className = 'ai-image-download-btn';
+            downloadBtn.title = 'Download Image';
+            downloadBtn.innerHTML = '<i class="fas fa-download"></i>';
 
-            contentDiv.appendChild(img);
-            contentDiv.appendChild(downloadBtn);
+            imageContainer.appendChild(img);
+            imageContainer.appendChild(downloadBtn);
+            contentDiv.appendChild(imageContainer);
             bubbleDiv.appendChild(contentDiv);
             messageDiv.appendChild(bubbleDiv);
 
@@ -877,27 +877,27 @@ document.addEventListener('DOMContentLoaded', () => {
             messageDiv.classList.add('message', 'bot-message');
 
             const bubbleDiv = document.createElement('div');
-            bubbleDiv.classList.add('message-bubble', 'has-pinterest-slider');
+            bubbleDiv.classList.add('message-bubble');
 
             const contentDiv = document.createElement('div');
             contentDiv.classList.add('message-content');
 
+            const imageContainer = document.createElement('div');
+            imageContainer.className = 'ai-image-container';
+
             const img = document.createElement('img');
             img.src = data.images.base64;
-            img.style.maxWidth = '300px';
-            img.style.borderRadius = '10px';
 
             const downloadBtn = document.createElement('a');
             downloadBtn.href = data.images.base64;
             downloadBtn.download = `banana_ai_result_${Date.now()}.png`;
-            downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download Image';
-            downloadBtn.style.display = 'block';
-            downloadBtn.style.marginTop = '10px';
-            downloadBtn.style.color = 'var(--link-color)';
-            downloadBtn.style.textDecoration = 'none';
+            downloadBtn.className = 'ai-image-download-btn';
+            downloadBtn.title = 'Download Image';
+            downloadBtn.innerHTML = '<i class="fas fa-download"></i>';
 
-            contentDiv.appendChild(img);
-            contentDiv.appendChild(downloadBtn);
+            imageContainer.appendChild(img);
+            imageContainer.appendChild(downloadBtn);
+            contentDiv.appendChild(imageContainer);
             bubbleDiv.appendChild(contentDiv);
             messageDiv.appendChild(bubbleDiv);
 
@@ -1638,7 +1638,37 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
                     const blob = await response.blob();
                     const localImageUrl = await fileToBase64(blob);
                     const imageName = `${prompt.substring(0,20).replace(/\s+/g, '_') || 'generated_image'}.png`;
-                    addNewMessage('bot', `${capitalizeText(prompt)}`, 'image', {name: imageName, url: localImageUrl, caption: `${capitalizeText(prompt)}`}, false);
+
+                    const messageDiv = document.createElement('div');
+                    messageDiv.classList.add('message', 'bot-message');
+
+                    const bubbleDiv = document.createElement('div');
+                    bubbleDiv.classList.add('message-bubble');
+
+                    const contentDiv = document.createElement('div');
+                    contentDiv.classList.add('message-content');
+
+                    const imageContainer = document.createElement('div');
+                    imageContainer.className = 'ai-image-container';
+
+                    const img = document.createElement('img');
+                    img.src = localImageUrl;
+
+                    const downloadBtn = document.createElement('a');
+                    downloadBtn.href = localImageUrl;
+                    downloadBtn.download = imageName;
+                    downloadBtn.className = 'ai-image-download-btn';
+                    downloadBtn.title = 'Download Image';
+                    downloadBtn.innerHTML = '<i class="fas fa-download"></i>';
+
+                    imageContainer.appendChild(img);
+                    imageContainer.appendChild(downloadBtn);
+                    contentDiv.appendChild(imageContainer);
+                    bubbleDiv.appendChild(contentDiv);
+                    messageDiv.appendChild(bubbleDiv);
+
+                    domElements.chatContainer.appendChild(messageDiv);
+                    scrollToBottom();
                     cleanupAfterResponseAttempt();
                 } catch (apiError) {
                      if (apiError.name === 'AbortError') {
