@@ -1,8 +1,1 @@
-/api/neko /api/neko https://api.nekolabs.web.id/ai/gpt/4o-mini-search?text=:text&systemPrompt=:systemPrompt&sessionId=:sessionId 200
-/api/play https://swagger-nextjs-one.vercel.app/api/downloader/ytaudio?query=:query&direct=true 200
-/api/banana-ai https://swagger-nextjs-one.vercel.app/api/ai/nano-banana 200
-/api/lyrics-search https://api.nekolabs.web.id/discovery/lyrics/search?q=:q 200
-/api/what-music https://swagger-nextjs-one.vercel.app/api/tools/what-music 200
-/api/animagine https://swagger-nextjs-one.vercel.app/api/ai/animagine?prompt=:prompt&ratio=:ratio&model=:model 200
-
 /* /index.html 200
