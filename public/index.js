@@ -834,7 +834,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function handleAnimagineResponse(data) {
+    function handleAnimagineResponse(data, prompt) {
         if (data && data.status && data.images && data.images.base64) {
             const messageDiv = document.createElement('div');
             messageDiv.classList.add('message', 'bot-message');
@@ -847,7 +847,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const captionDiv = document.createElement('div');
             captionDiv.className = 'ai-image-caption';
-            captionDiv.textContent = data.prompt;
+            captionDiv.textContent = prompt;
             contentDiv.appendChild(captionDiv);
 
             const imageContainer = document.createElement('div');
@@ -874,7 +874,7 @@ document.addEventListener('DOMContentLoaded', () => {
             scrollToBottom();
 
             // Add a placeholder to the actual chat history
-            addNewMessage('bot', `Generated image for: "${data.prompt}"`, 'text', null, false);
+            addNewMessage('bot', `Generated image for: "${prompt}"`, 'text', null, false);
         } else {
             addNewMessage('bot', 'Sorry, I received an invalid response from Animagine AI.', 'text', null, true);
         }
@@ -2170,7 +2170,7 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
             showTypingIndicator();
             try {
                 const response = await axios.get(`/api/animagine?prompt=${encodeURIComponent(prompt)}&ratio=${encodeURIComponent(ratio)}&model=${encodeURIComponent(model)}`);
-                handleAnimagineResponse(response.data);
+                handleAnimagineResponse(response.data, prompt);
             } catch (error) {
                 addNewMessage('bot', `Sorry, something went wrong with Animagine AI. Error: ${error.message}`, 'text', null, true);
             } finally {
