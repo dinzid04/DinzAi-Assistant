@@ -1655,58 +1655,49 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
                     cleanupAfterResponseAttempt('Ready. How can I help?');
                     return;
                 }
-                const imageUrl = `https://api.siputzx.my.id/api/ai/flux?prompt=${encodeURIComponent(prompt)}`;
+
+                // Hardcode ratio for simplicity for now
+                const ratio = '1:1';
+                const apiUrl = `https://swagger-nextjs-one.vercel.app/api/ai/qwen-image?prompt=${encodeURIComponent(prompt)}&ratio=${encodeURIComponent(ratio)}`;
+
                 try {
-                    const response = await fetch(imageUrl, {
-                        signal: appState.currentAbortController.signal
-                    });
-                    const blob = await response.blob();
-                    const localImageUrl = await fileToBase64(blob);
-                    const imageName = `${prompt.substring(0,20).replace(/\s+/g, '_') || 'generated_image'}.png`;
+                    const response = await fetch(apiUrl, { signal: appState.currentAbortController.signal });
+                    if (!response.ok) {
+                        throw new Error(`API request failed with status ${response.status}`);
+                    }
+                    const data = await response.json();
 
-                    const captionDiv = document.createElement('div');
-                    captionDiv.className = 'ai-image-caption';
-                    captionDiv.textContent = capitalizeText(prompt);
+                    if (data && data.status && data.images && data.images.url && data.images.base64) {
+                        const imageUrl = data.images.url;
+                        const imageBase64 = data.images.base64;
+                        const imageName = `${prompt.substring(0, 20).replace(/\s+/g, '_') || 'generated_image'}.webp`;
 
-                    const imageContainer = document.createElement('div');
-                    imageContainer.className = 'ai-image-container';
-                    const img = document.createElement('img');
-                    img.src = localImageUrl;
-                    const downloadBtn = document.createElement('a');
-                    downloadBtn.href = localImageUrl;
-                    downloadBtn.download = imageName;
-                    downloadBtn.className = 'ai-image-download-btn';
-                    downloadBtn.title = 'Download Image';
-                    downloadBtn.innerHTML = '<i class="fas fa-download"></i>';
-                    imageContainer.appendChild(img);
-                    imageContainer.appendChild(downloadBtn);
+                        const htmlContent = `
+                            <div class="ai-image-caption">${escapeHtml(capitalizeText(prompt))}</div>
+                            <div class="ai-image-container">
+                                <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(prompt)}">
+                                <a href="data:image/webp;base64,${imageBase64}" download="${escapeHtml(imageName)}" class="ai-image-download-btn" title="Download Image">
+                                    <i class="fas fa-download"></i>
+                                </a>
+                            </div>
+                        `;
 
-                    // Manually create and append the message to the DOM to avoid saving base64 to history
-                    const messageDiv = document.createElement('div');
-                    messageDiv.classList.add('message', 'bot-message');
-                    const bubbleDiv = document.createElement('div');
-                    bubbleDiv.classList.add('message-bubble');
-                    const contentDiv = document.createElement('div');
-                    contentDiv.classList.add('message-content');
+                        // Add the message as 'html' type to store it correctly in localStorage
+                        // The main `content` can be a placeholder text for non-html environments or for history view
+                        addNewMessage('bot', `Generated image for: "${capitalizeText(prompt)}"`, 'html', null, false, htmlContent);
 
-                    contentDiv.appendChild(captionDiv);
-                    contentDiv.appendChild(imageContainer);
-                    bubbleDiv.appendChild(contentDiv);
-                    messageDiv.appendChild(bubbleDiv);
-
-                    domElements.chatContainer.appendChild(messageDiv);
-                    scrollToBottom();
-
-                    // Add a placeholder to the actual chat history
-                    addNewMessage('bot', `Generated image for: "${capitalizeText(prompt)}"`, 'text', null, false);
-                    cleanupAfterResponseAttempt();
+                    } else {
+                        throw new Error('Invalid response format from image generation API.');
+                    }
                 } catch (apiError) {
                      if (apiError.name === 'AbortError') {
-                        return;
+                        return; // Stop silently if aborted
                      }
                      addNewMessage('bot', `Sorry, I couldn't create the image. Error: ${apiError.message || 'Unknown API error'}`, 'text', null, true);
-                     cleanupAfterResponseAttempt('Image generation failed.');
+                } finally {
+                    cleanupAfterResponseAttempt();
                 }
+                return; // Ensure we don't fall through to the AI call
             } else if (messageText.startsWith('/lyrics')) {
                 const query = messageText.substring('/lyrics'.length).trim();
                 if (!query) {
