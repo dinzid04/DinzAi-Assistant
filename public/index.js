@@ -872,6 +872,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             domElements.chatContainer.appendChild(messageDiv);
             scrollToBottom();
+
+            // Add a placeholder to the actual chat history
+            addNewMessage('bot', `Generated image for: "${data.prompt}"`, 'text', null, false);
         } else {
             addNewMessage('bot', 'Sorry, I received an invalid response from Animagine AI.', 'text', null, true);
         }
@@ -922,6 +925,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             domElements.chatContainer.appendChild(messageDiv);
             scrollToBottom();
+
+            // Add a placeholder to the actual chat history
+            addNewMessage('bot', `Generated image for: "${promptText}"`, 'text', null, false);
         } else {
             addNewMessage('bot', 'Sorry, I received an invalid response from Banana AI.', 'text', null, true);
         }
@@ -1675,8 +1681,24 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
                     imageContainer.appendChild(img);
                     imageContainer.appendChild(downloadBtn);
 
-                    const finalHtml = captionDiv.outerHTML + imageContainer.outerHTML;
-                    addNewMessage('bot', finalHtml, 'html', null, false);
+                    // Manually create and append the message to the DOM to avoid saving base64 to history
+                    const messageDiv = document.createElement('div');
+                    messageDiv.classList.add('message', 'bot-message');
+                    const bubbleDiv = document.createElement('div');
+                    bubbleDiv.classList.add('message-bubble');
+                    const contentDiv = document.createElement('div');
+                    contentDiv.classList.add('message-content');
+
+                    contentDiv.appendChild(captionDiv);
+                    contentDiv.appendChild(imageContainer);
+                    bubbleDiv.appendChild(contentDiv);
+                    messageDiv.appendChild(bubbleDiv);
+
+                    domElements.chatContainer.appendChild(messageDiv);
+                    scrollToBottom();
+
+                    // Add a placeholder to the actual chat history
+                    addNewMessage('bot', `Generated image for: "${capitalizeText(prompt)}"`, 'text', null, false);
                     cleanupAfterResponseAttempt();
                 } catch (apiError) {
                      if (apiError.name === 'AbortError') {
