@@ -845,27 +845,36 @@ document.addEventListener('DOMContentLoaded', () => {
             const contentDiv = document.createElement('div');
             contentDiv.classList.add('message-content');
 
+            const captionDiv = document.createElement('div');
+            captionDiv.className = 'ai-image-caption';
+            captionDiv.textContent = data.prompt;
+            contentDiv.appendChild(captionDiv);
+
+            const imageContainer = document.createElement('div');
+            imageContainer.className = 'ai-image-container';
+
             const img = document.createElement('img');
             img.src = data.images.base64;
-            img.style.maxWidth = '300px';
-            img.style.borderRadius = '10px';
 
             const downloadBtn = document.createElement('a');
             downloadBtn.href = data.images.base64;
             downloadBtn.download = `animagine_result_${Date.now()}.png`;
-            downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download Image';
-            downloadBtn.style.display = 'block';
-            downloadBtn.style.marginTop = '10px';
-            downloadBtn.style.color = 'var(--link-color)';
-            downloadBtn.style.textDecoration = 'none';
+            downloadBtn.className = 'ai-image-download-btn';
+            downloadBtn.title = 'Download Image';
+            downloadBtn.innerHTML = '<i class="fas fa-download"></i>';
 
-            contentDiv.appendChild(img);
-            contentDiv.appendChild(downloadBtn);
+            imageContainer.appendChild(img);
+            imageContainer.appendChild(downloadBtn);
+
+            contentDiv.appendChild(imageContainer);
             bubbleDiv.appendChild(contentDiv);
             messageDiv.appendChild(bubbleDiv);
 
             domElements.chatContainer.appendChild(messageDiv);
             scrollToBottom();
+
+            // Add a placeholder to the actual chat history
+            addNewMessage('bot', `Generated image for: "${data.prompt}"`, 'text', null, false);
         } else {
             addNewMessage('bot', 'Sorry, I received an invalid response from Animagine AI.', 'text', null, true);
         }
@@ -882,27 +891,43 @@ document.addEventListener('DOMContentLoaded', () => {
             const contentDiv = document.createElement('div');
             contentDiv.classList.add('message-content');
 
+            const currentSession = appState.chatSessions[appState.currentSessionId];
+            const lastMessage = currentSession.messages[currentSession.messages.length - 1];
+            let promptText = 'Generated Image';
+            if (lastMessage && lastMessage.sender === 'user' && lastMessage.type === 'image') {
+                promptText = lastMessage.content;
+            }
+
+            const captionDiv = document.createElement('div');
+            captionDiv.className = 'ai-image-caption';
+            captionDiv.textContent = promptText;
+            contentDiv.appendChild(captionDiv);
+
+            const imageContainer = document.createElement('div');
+            imageContainer.className = 'ai-image-container';
+
             const img = document.createElement('img');
             img.src = data.images.base64;
-            img.style.maxWidth = '300px';
-            img.style.borderRadius = '10px';
 
             const downloadBtn = document.createElement('a');
             downloadBtn.href = data.images.base64;
             downloadBtn.download = `banana_ai_result_${Date.now()}.png`;
-            downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download Image';
-            downloadBtn.style.display = 'block';
-            downloadBtn.style.marginTop = '10px';
-            downloadBtn.style.color = 'var(--link-color)';
-            downloadBtn.style.textDecoration = 'none';
+            downloadBtn.className = 'ai-image-download-btn';
+            downloadBtn.title = 'Download Image';
+            downloadBtn.innerHTML = '<i class="fas fa-download"></i>';
 
-            contentDiv.appendChild(img);
-            contentDiv.appendChild(downloadBtn);
+            imageContainer.appendChild(img);
+            imageContainer.appendChild(downloadBtn);
+
+            contentDiv.appendChild(imageContainer);
             bubbleDiv.appendChild(contentDiv);
             messageDiv.appendChild(bubbleDiv);
 
             domElements.chatContainer.appendChild(messageDiv);
             scrollToBottom();
+
+            // Add a placeholder to the actual chat history
+            addNewMessage('bot', `Generated image for: "${promptText}"`, 'text', null, false);
         } else {
             addNewMessage('bot', 'Sorry, I received an invalid response from Banana AI.', 'text', null, true);
         }
@@ -1638,7 +1663,42 @@ async function AI_API_Call(query, prompt, sessionId, fileObject = null, abortSig
                     const blob = await response.blob();
                     const localImageUrl = await fileToBase64(blob);
                     const imageName = `${prompt.substring(0,20).replace(/\s+/g, '_') || 'generated_image'}.png`;
-                    addNewMessage('bot', `${capitalizeText(prompt)}`, 'image', {name: imageName, url: localImageUrl, caption: `${capitalizeText(prompt)}`}, false);
+
+                    const captionDiv = document.createElement('div');
+                    captionDiv.className = 'ai-image-caption';
+                    captionDiv.textContent = capitalizeText(prompt);
+
+                    const imageContainer = document.createElement('div');
+                    imageContainer.className = 'ai-image-container';
+                    const img = document.createElement('img');
+                    img.src = localImageUrl;
+                    const downloadBtn = document.createElement('a');
+                    downloadBtn.href = localImageUrl;
+                    downloadBtn.download = imageName;
+                    downloadBtn.className = 'ai-image-download-btn';
+                    downloadBtn.title = 'Download Image';
+                    downloadBtn.innerHTML = '<i class="fas fa-download"></i>';
+                    imageContainer.appendChild(img);
+                    imageContainer.appendChild(downloadBtn);
+
+                    // Manually create and append the message to the DOM to avoid saving base64 to history
+                    const messageDiv = document.createElement('div');
+                    messageDiv.classList.add('message', 'bot-message');
+                    const bubbleDiv = document.createElement('div');
+                    bubbleDiv.classList.add('message-bubble');
+                    const contentDiv = document.createElement('div');
+                    contentDiv.classList.add('message-content');
+
+                    contentDiv.appendChild(captionDiv);
+                    contentDiv.appendChild(imageContainer);
+                    bubbleDiv.appendChild(contentDiv);
+                    messageDiv.appendChild(bubbleDiv);
+
+                    domElements.chatContainer.appendChild(messageDiv);
+                    scrollToBottom();
+
+                    // Add a placeholder to the actual chat history
+                    addNewMessage('bot', `Generated image for: "${capitalizeText(prompt)}"`, 'text', null, false);
                     cleanupAfterResponseAttempt();
                 } catch (apiError) {
                      if (apiError.name === 'AbortError') {
