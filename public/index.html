@@ -1106,6 +1106,46 @@
             background-color: var(--button-hover-bg);
             border-color: var(--primary-color);
         }
+        .ai-image-caption {
+            font-size: 0.9em;
+            color: var(--placeholder-color);
+            margin-bottom: 8px;
+            padding-left: 5px;
+        }
+        .ai-image-container {
+            position: relative;
+            display: inline-block;
+            max-width: 300px;
+        }
+        .ai-image-container img {
+            display: block;
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+        }
+        .ai-image-download-btn {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            opacity: 0.8;
+            transition: opacity 0.2s, background-color 0.2s;
+        }
+        .ai-image-download-btn:hover {
+            background-color: rgba(0, 0, 0, 0.8);
+            opacity: 1;
+        }
         .focus-mode-container {
             position: fixed;
             top: 0;
